@@ -4,14 +4,13 @@
   ============================================================================
   This is the un-bundled, hand-editable source. Where to change things:
 
-    - Contact + newsletter email .. search for:  us3roffline@gmail.com
-    - Real accounts (Supabase) .... search for:  PASTE YOUR SUPABASE
-    - Add a "paid" button ......... see the Setup Guide, Part 5
-    - Social preview image ........ add <meta property="og:image"> in <head>
+    - Supabase accounts ........... configured (your keys are set below)
+    - Contact + newsletter forms .. post to a FormSubmit alias (email hidden)
+    - Enable paid requests ........ set PAYMENT_LINK to your checkout URL
+    - Social preview image ........ uses og.png (upload it beside this file)
 
-  Fonts load from Google Fonts; the Supabase client loads from a CDN.
-  The contact + newsletter forms post to FormSubmit and need a one-time
-  activation click (Setup Guide, Part 3).
+  Fonts: Google Fonts. Supabase client: CDN. Forms: FormSubmit (alias token).
+  Note: the "Email me directly" popover link is a normal mailto by design.
 -->
 <html lang="en"><head>
 <meta charset="utf-8">
@@ -25,10 +24,15 @@
 <meta property="og:locale" content="en">
 <meta property="og:locale:alternate" content="fr">
 <meta property="og:locale:alternate" content="ar">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Meyana — engineering notebook from Rabat">
 <meta name="twitter:description" content="A 2-axis gimbal TIPE: PID vs. a reinforcement-learning controller on real hardware.">
 <meta name="theme-color" content="#262b33">
+<meta name="color-scheme" content="light dark">
+<meta property="og:image" content="https://0ff-line.github.io/meyana/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:image" content="https://0ff-line.github.io/meyana/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cg fill='none' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 40 L9 13' stroke='%23262b33'/%3E%3Cpath d='M39 40 L39 13' stroke='%23262b33'/%3E%3Cpath d='M9 13 L24 27 L39 13' stroke='%23246ab0'/%3E%3Cpath d='M24 27 L24 40' stroke='%23246ab0'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
@@ -5928,7 +5932,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
      triggers a one-time activation email to this address; click
      the link in it once and every later message arrives in the
      inbox automatically. (mailto fallback if the network fails.) */
-  const ADMIN_EMAIL = 'us3roffline@gmail.com';
+  const FORMSUBMIT_ID = '60c2a8471d24e1a9cabb1d1ca9c43052';
   /* ========================================================= */
 
   /* ====== paid / priority requests (optional) ======
@@ -6510,7 +6514,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         _template: 'table', _captcha: 'false',
       };
       try {
-        const res = await fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
+        const res = await fetch('https://formsubmit.co/ajax/' + FORMSUBMIT_ID, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload),
@@ -6522,11 +6526,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         toast(paid ? 'Request sent · complete payment in the new tab' : 'Message sent · thank you', 'success');
       } catch (err) {
         btn.disabled = false; if (paidBtn) paidBtn.disabled = false; useBtn.textContent = orig;
-        const mailto = 'mailto:' + ADMIN_EMAIL +
-          '?subject=' + encodeURIComponent(paid ? 'Meyana — PAID request' : 'Meyana — help request') +
-          '&body=' + encodeURIComponent(v.msg + '\n\n— ' + (v.name || '') + ' (' + v.email + ')');
-        if (note) note.innerHTML = 'Couldn\u2019t send automatically — <a href="' + mailto +
-          '" style="color:var(--accent);border-bottom:1px solid currentColor;">email it directly →</a>';
+        if (note) note.textContent = 'Couldn\u2019t send just now \u2014 please try again in a moment.';
       }
     }
 
@@ -6604,7 +6604,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
 
     // expose for debugging / verification
     window.MeyanaAuth = {
-      demo: DEMO, configured: CONFIGURED, adminEmail: ADMIN_EMAIL,
+      demo: DEMO, configured: CONFIGURED, adminEmail: FORMSUBMIT_ID,
       get user() { return currentUser; },
       open: openModal, openSettings: openSettings,
     };
