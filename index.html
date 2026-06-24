@@ -6,7 +6,7 @@
 
     - Supabase accounts ........... configured (your keys are set below)
     - Contact + newsletter forms .. post to a FormSubmit alias (email hidden)
-    - Paid requests ............... PayPal.me link is set (PAYMENT_LINK below)
+    - Paid request tiers .......... PAYPAL_ME + TIERS below (prices / links)
     - Social preview image ........ uses og.png (upload it beside this file)
 
   Fonts: Google Fonts. Supabase client: CDN. Forms: FormSubmit (alias token).
@@ -1482,7 +1482,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   }
   .specs {
     margin-top: 22px;
-    display: grid; grid-template-columns: 1fr 1fr;
+    display: grid; grid-template-columns: 1fr;
     gap: 0; border: 1px solid var(--rule);
     font-family: var(--mono); font-size: 11.5px;
     background: var(--paper);
@@ -1491,9 +1491,9 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     display: grid; grid-template-columns: 110px 1fr;
     border-bottom: 1px solid var(--rule);
   }
-  .specs .row:nth-last-child(-n+2) { border-bottom: 0; }
+  .specs .row:last-child { border-bottom: 0; }
   .specs .row .k { padding: 9px 12px; background: var(--paper-2); color: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase; }
-  .specs .row .v { padding: 9px 12px; color: var(--ink); border-left: 1px solid var(--rule); }
+  .specs .row .v { padding: 9px 12px; color: var(--ink); border-left: 1px solid var(--rule); min-width: 0; overflow-wrap: anywhere; }
 
   .compare {
     margin-top: 18px;
@@ -4418,10 +4418,6 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"></rect><path d="M3 7l9 6 9-6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
         <span class="body"><span data-i18n="pop_email">Email me directly</span><small>us3roffline @ gmail.com</small></span>
       </a>
-      <a class="opt" href="https://www.reddit.com/r/Meyana" target="_blank" rel="noopener">
-        <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><circle cx="9" cy="13" r="0.9" fill="currentColor" stroke="none"></circle><circle cx="15" cy="13" r="0.9" fill="currentColor" stroke="none"></circle><path d="M8 16c1 1 2.5 1.5 4 1.5S15 17 16 16" stroke-linecap="round" fill="none"></path><circle cx="19" cy="6" r="1.6"></circle><path d="M12 5l5 0.6" stroke-linecap="round"></path></svg></span>
-        <span class="body"><span data-i18n="pop_reddit">Join the Reddit community</span><small data-i18n="pop_reddit_sub">r/Meyana · 1.2k builders</small></span>
-      </a>
       <a class="opt" href="#">
         <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-7.6 10.5L3 21l8.5-1.4A8 8 0 1 0 12 2z" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
         <span class="body"><span data-i18n="pop_chat">Quick chat on Signal</span><small data-i18n="pop_chat_sub">@meyana.01 · encrypted</small></span>
@@ -5940,8 +5936,12 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
        • Stripe Payment Link   https://buy.stripe.com/xxxxxxxx
        • PayPal.Me             https://paypal.me/yourname/20
        • Lemon Squeezy / Gumroad / Ko-fi checkout URL
-     Leave blank ('') and the paid button simply doesn't appear. */
-  const PAYMENT_LINK = 'https://paypal.me/user0ffline/5USD';
+     Set PAYPAL_ME + TIERS just below to switch paid requests on. */
+  const PAYPAL_ME = 'https://paypal.me/user0ffline';   // your PayPal.me page ('' hides paid requests)
+  const TIERS = [
+    { id: 'priority',  label: 'Priority reply', price: 5,  blurb: 'Bumped to the front \u2014 a focused, specific reply to your question.' },
+    { id: 'extensive', label: 'Extensive help', price: 20, blurb: 'A deep dive: detailed review of your work, plus back-and-forth until you are unstuck.' },
+  ];
   /* ================================================= */
 
   const CONFIGURED =
@@ -6462,19 +6462,37 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       if (emailEl && !emailEl.value) emailEl.value = currentUser.email;
     }
 
-    const PAID_ON = /^https?:\/\/\S+$/i.test(PAYMENT_LINK);
-    let paidBtn = null;
+    const PAID_ON = /^https?:\/\/\S+$/i.test(PAYPAL_ME);
+    let paypalEl = null;
+    let paidBtns = [];
 
-    // add a "Priority request (paid)" button when a payment link is configured
+    // when PAYPAL_ME is set, show the paid tiers (each opens PayPal for that amount)
     if (PAID_ON) {
       const actions = card.querySelector('.submit-actions');
-      paidBtn = document.createElement('button');
-      paidBtn.type = 'button';
-      paidBtn.className = 'submit-btn submit-btn-paid';
-      paidBtn.id = 'submit-btn-paid';
-      paidBtn.textContent = 'Priority request (paid) →';
-      if (actions) actions.appendChild(paidBtn);
-      paidBtn.addEventListener('click', () => sendRequest(true));
+      const panel = document.createElement('div');
+      panel.style.cssText = 'margin-top:18px;padding-top:16px;border-top:1px dashed var(--rule);';
+      panel.innerHTML =
+        '<div style="font-family:var(--mono);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;">Need it sooner, or in depth? Send a paid request</div>' +
+        '<div class="field">' +
+          '<label for="sub-paypal">your PayPal username \u2014 so I can match your payment</label>' +
+          '<input type="text" id="sub-paypal" placeholder="user0ffline">' +
+        '</div>' +
+        '<div class="paid-tiers" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;"></div>' +
+        '<p class="meta-note" style="margin-top:10px;">Your request reaches me right away; the payment opens in a new tab, and I confirm it in PayPal before it counts.</p>';
+      if (actions && actions.parentNode) actions.parentNode.insertBefore(panel, actions.nextSibling);
+      paypalEl = panel.querySelector('#sub-paypal');
+      const wrap = panel.querySelector('.paid-tiers');
+      TIERS.forEach(function (t) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'submit-btn submit-btn-paid';
+        b.style.cssText = 'flex:1;min-width:150px;';
+        b.title = t.blurb;
+        b.innerHTML = t.label + ' <span style="opacity:.75;">\u2014 $' + t.price + '</span>';
+        b.addEventListener('click', function () { sendRequest(t, b); });
+        wrap.appendChild(b);
+        paidBtns.push(b);
+      });
     }
 
     function validate() {
@@ -6489,27 +6507,48 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       }
       if (msg.length < 12) {
         descEl.focus(); descEl.style.borderColor = 'oklch(0.55 0.20 28)';
-        if (note) note.textContent = 'Add a sentence or two about your question.';
+        if (note) note.textContent = 'Tell me what you are building and the problem you are facing.';
         return null;
       }
       return { name, email, msg };
     }
 
-    async function sendRequest(paid) {
+    async function sendRequest(tier, clickedBtn) {
       const v = validate();
       if (!v) return;
+      const paid = !!tier;
+      if (paid) {
+        const ppu = (paypalEl && paypalEl.value || '').trim();
+        if (!ppu) {
+          if (paypalEl) { paypalEl.focus(); paypalEl.style.borderColor = 'oklch(0.55 0.20 28)'; }
+          if (note) note.textContent = 'Add your PayPal username so I can match your payment.';
+          return;
+        }
+        v.paypal = ppu;
+      }
       const linkEl = document.getElementById('sub-link');
       const link = (linkEl && linkEl.value || '').trim();
-      const useBtn = paid ? paidBtn : btn;
+      const useBtn = clickedBtn || btn;
       const orig = useBtn.textContent;
-      btn.disabled = true; if (paidBtn) paidBtn.disabled = true;
-      useBtn.textContent = paid ? 'Opening checkout…' : 'Sending…';
+      btn.disabled = true; paidBtns.forEach(b => b.disabled = true);
+      useBtn.textContent = paid ? 'Opening PayPal\u2026' : 'Sending\u2026';
 
-      const payload = {
-        name: v.name || 'Someone', email: v.email, message: v.msg,
-        link: link || '—',
-        request_type: paid ? 'PAID / priority' : 'free',
-        _subject: (paid ? 'Meyana — PAID request from ' : 'Meyana — help request from ') + (v.name || v.email),
+      const payLink = paid ? (PAYPAL_ME + '/' + tier.price + 'USD') : '';
+      const payload = paid ? {
+        priority: '\u2b50 PAID REQUEST \u00b7 ' + tier.label + ' ($' + tier.price + ')',
+        payment: 'VERIFY a $' + tier.price + ' payment from PayPal user \u201c' + v.paypal + '\u201d \u2014 this form cannot confirm payment, check your PayPal.',
+        tier: tier.label + ' ($' + tier.price + ')',
+        paypal_username: v.paypal,
+        name: v.name || 'Someone', email: v.email,
+        work_and_problem: v.msg,
+        link: link || '\u2014',
+        _subject: '\u2b50 PAID \u00b7 ' + tier.label + ' ($' + tier.price + ') \u2014 ' + (v.name || v.email) + ' \u00b7 verify payment',
+        _template: 'table', _captcha: 'false',
+      } : {
+        name: v.name || 'Someone', email: v.email,
+        work_and_problem: v.msg,
+        link: link || '\u2014',
+        _subject: 'Meyana \u2014 message from ' + (v.name || v.email),
         _template: 'table', _captcha: 'false',
       };
       try {
@@ -6520,11 +6559,11 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || (data && String(data.success) === 'false')) throw new Error(data && data.message || 'send failed');
-        if (paid) window.open(PAYMENT_LINK, '_blank', 'noopener');
+        if (paid) window.open(payLink, '_blank', 'noopener');
         card.classList.add('is-sent');
-        toast(paid ? 'Request sent · complete payment in the new tab' : 'Message sent · thank you', 'success');
+        toast(paid ? 'Request sent \u00b7 finish the $' + tier.price + ' payment in the new tab' : 'Message sent \u00b7 thank you', 'success');
       } catch (err) {
-        btn.disabled = false; if (paidBtn) paidBtn.disabled = false; useBtn.textContent = orig;
+        btn.disabled = false; paidBtns.forEach(b => b.disabled = false); useBtn.textContent = orig;
         if (note) note.textContent = 'Couldn\u2019t send just now \u2014 please try again in a moment.';
       }
     }
