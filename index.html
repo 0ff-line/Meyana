@@ -3891,6 +3891,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
             <ul>
               <li><span>github</span><span><a href="https://github.com/0ff-line" target="_blank" rel="noopener">@0ff-line</a></span></li>
               <li><span>linkedin</span><span><a href="https://www.linkedin.com/in/aymane-e-a52ba5316/" target="_blank" rel="noopener">/in/aymane-e</a></span></li>
+              <li><span>reddit</span><span><a href="https://www.reddit.com/r/Meyana" target="_blank" rel="noopener">r/Meyana</a></span></li>
             </ul>
           </div>
         </div>
@@ -4417,6 +4418,10 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       <a class="opt" href="mailto:us3roffline@gmail.com">
         <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"></rect><path d="M3 7l9 6 9-6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
         <span class="body"><span data-i18n="pop_email">Email me directly</span><small>us3roffline @ gmail.com</small></span>
+      </a>
+      <a class="opt" href="https://www.reddit.com/r/Meyana" target="_blank" rel="noopener">
+        <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><circle cx="9" cy="13" r="0.9" fill="currentColor" stroke="none"></circle><circle cx="15" cy="13" r="0.9" fill="currentColor" stroke="none"></circle><path d="M8 16c1 1 2.5 1.5 4 1.5S15 17 16 16" stroke-linecap="round" fill="none"></path><circle cx="19" cy="6" r="1.6"></circle><path d="M12 5l5 0.6" stroke-linecap="round"></path></svg></span>
+        <span class="body"><span data-i18n="pop_reddit">Join the Reddit community</span><small>r/Meyana</small></span>
       </a>
       <a class="opt" href="#">
         <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-7.6 10.5L3 21l8.5-1.4A8 8 0 1 0 12 2z" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
@@ -4989,13 +4994,14 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     const totalCards = cards.length;
     function applyFilter(f) {
       let visible = 0;
-      cards.forEach(c => {
+      const all = document.querySelectorAll('.grid .card[data-tags]');
+      all.forEach(c => {
         const tags = (c.dataset.tags || '').split(/\s+/);
         const show = f === 'all' || tags.includes(f);
         c.classList.toggle('is-hidden', !show);
         if (show) visible++;
       });
-      filterCount.textContent = visible + ' of ' + totalCards;
+      filterCount.textContent = visible + ' of ' + all.length;
     }
     filterBtns.forEach(b => {
       b.addEventListener('click', () => {
@@ -5950,7 +5956,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
 
   let sb = null;
   if (CONFIGURED && window.supabase && window.supabase.createClient) {
-    try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+    try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); try { window.__MEYANA = { sb: sb }; } catch (e) {} }
     catch (e) { console.warn('[Meyana] Supabase init failed:', e); }
   }
   const DEMO = !sb;
@@ -6654,4 +6660,125 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
 })();
 </script>
 
+
+<script>
+/* ===== Meyana · dynamic projects + admin add-form (Supabase-backed) =====
+   Reads projects from the `projects` table and appends them to the grid.
+   When the admin account is signed in, an "Add project" form appears that
+   writes straight to the table — no HTML editing. Everything is wrapped so a
+   missing table / offline / logged-out state silently leaves the static
+   cards untouched. */
+(function () {
+  try {
+    var M = window.__MEYANA || {};
+    var sb = M.sb || null;
+    var ADMIN_EMAIL = 'us3roffline@gmail.com';
+    var sec = document.getElementById('projects');
+    var grid = sec && sec.querySelector('.grid');
+    if (!sec || !grid) return;
+
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function chipHtml(chips){
+      return String(chips||'').split(',').map(function(t){return t.trim();}).filter(Boolean)
+        .map(function(t,i){return '<span class="tag'+(i===0?' is-accent':'')+'">'+esc(t)+'</span>';}).join('');
+    }
+    function cardEl(p){
+      var art=document.createElement('article');
+      art.className='card';
+      art.setAttribute('data-tags',(String(p.tags||'').trim())||'control');
+      if(p.id) art.setAttribute('data-db-id',p.id);
+      var title=(p.title_accent?'<span class="accent">'+esc(p.title_accent)+'</span>':'')+esc(p.title_rest||'');
+      art.innerHTML=
+        '<div class="row1"><span class="num">'+esc(p.num?('\u2116 '+p.num):'\u2116')+'</span><span>'+esc(p.meta||'')+'</span></div>'+
+        '<h4>'+title+'</h4>'+
+        '<p>'+esc(p.descr||'')+'</p>'+
+        '<div class="tags">'+chipHtml(p.chips)+'</div>';
+      return art;
+    }
+    function refilter(){ var a=document.querySelector('#filters button.is-on'); if(a) a.click(); }
+
+    function load(){
+      if(!sb) return;
+      Promise.resolve(sb.from('projects').select('*').order('sort',{ascending:true})).then(function(res){
+        if(!res||res.error||!res.data||!res.data.length) return;
+        res.data.forEach(function(p){ grid.appendChild(cardEl(p)); });
+        refilter();
+      }).catch(function(){});
+    }
+
+    var panel=null;
+    function ensurePanel(){
+      if(panel) return panel;
+      var st=document.createElement('style');
+      st.textContent=
+        '#admin-add{margin-top:22px;border:1px solid var(--rule);background:var(--paper);padding:20px;}'+
+        '#admin-add .ahead{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;}'+
+        '#admin-add input,#admin-add textarea{appearance:none;width:100%;border:1px solid var(--rule);background:var(--paper-2);padding:10px 12px;font-family:var(--mono);font-size:13px;color:var(--ink);outline:none;margin-bottom:10px;box-sizing:border-box;}'+
+        '#admin-add textarea{font-family:var(--sans);min-height:72px;resize:vertical;}'+
+        '#admin-add input:focus,#admin-add textarea:focus{border-color:var(--accent);}'+
+        '#admin-add .arow{display:grid;grid-template-columns:90px 1fr;gap:10px;}'+
+        '#admin-add .achecks{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-bottom:10px;}'+
+        '#admin-add .achecks label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);background:var(--paper-2);padding:7px 11px;cursor:pointer;}'+
+        '#admin-add .achecks input{width:auto;margin:0;accent-color:var(--accent);}'+
+        '#admin-add .asave{appearance:none;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:11px 20px;}'+
+        '#admin-add .asave:hover{background:var(--accent);border-color:var(--accent);}'+
+        '#admin-add .asave:disabled{opacity:.55;cursor:default;}'+
+        '#admin-add .amsg{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:8px;min-height:1em;}'+
+        '#admin-add .amsg.ok{color:var(--good);}#admin-add .amsg.err{color:oklch(0.55 0.20 28);}';
+      document.head.appendChild(st);
+      var w=document.createElement('div');
+      w.id='admin-add';
+      w.innerHTML=
+        '<div class="ahead">Admin \u00b7 add a project \u2014 saves to your database and appears live</div>'+
+        '<div class="arow"><input id="ap-num" placeholder="05"><input id="ap-meta" placeholder="2024 \u00b7 driver board"></div>'+
+        '<input id="ap-tacc" placeholder="title \u2014 highlighted start (e.g. FOC driver)">'+
+        '<input id="ap-trest" placeholder="title \u2014 the rest (e.g.  \u2014 a 3-phase BLDC board)">'+
+        '<textarea id="ap-descr" placeholder="what it is + the problem it solves"></textarea>'+
+        '<div class="achecks"><label><input type="checkbox" value="control">Control</label>'+
+          '<label><input type="checkbox" value="ai">RL \u00b7 ML</label>'+
+          '<label><input type="checkbox" value="hardware" checked>Hardware</label></div>'+
+        '<input id="ap-chips" placeholder="tags, comma-separated (first one highlighted)">'+
+        '<button class="asave" id="ap-save">Add project \u2192</button>'+
+        '<div class="amsg" id="ap-msg"></div>';
+      sec.appendChild(w);
+      var save=w.querySelector('#ap-save'), msg=w.querySelector('#ap-msg');
+      var g=function(id){return w.querySelector(id);};
+      save.addEventListener('click',function(){
+        var tacc=(g('#ap-tacc').value||'').trim(), trest=(g('#ap-trest').value||'').trim();
+        var descr=(g('#ap-descr').value||'').trim();
+        if(!tacc&&!trest){ msg.className='amsg err'; msg.textContent='Add a title.'; return; }
+        if(descr.length<8){ msg.className='amsg err'; msg.textContent='Add a short description.'; return; }
+        var cats=Array.prototype.slice.call(w.querySelectorAll('.achecks input:checked')).map(function(c){return c.value;});
+        var rec={ num:(g('#ap-num').value||'').trim(), meta:(g('#ap-meta').value||'').trim(),
+          title_accent:tacc, title_rest:trest, descr:descr,
+          tags:(cats.length?cats:['control']).join(' '), chips:(g('#ap-chips').value||'').trim(),
+          sort:parseInt((g('#ap-num').value||'0'),10)||0 };
+        save.disabled=true; msg.className='amsg'; msg.textContent='Saving\u2026';
+        Promise.resolve(sb.from('projects').insert([rec]).select()).then(function(res){
+          save.disabled=false;
+          if(res.error) throw res.error;
+          var p=(res.data&&res.data[0])?res.data[0]:rec;
+          grid.appendChild(cardEl(p)); refilter();
+          msg.className='amsg ok'; msg.textContent='Added \u2713 \u2014 it is live on your site.';
+          g('#ap-tacc').value=''; g('#ap-trest').value=''; g('#ap-descr').value=''; g('#ap-chips').value='';
+        }).catch(function(err){
+          save.disabled=false; msg.className='amsg err';
+          msg.textContent=(err&&err.message)?('Could not save: '+err.message):'Could not save \u2014 is the projects table set up?';
+        });
+      });
+      panel=w; return w;
+    }
+    function showAdmin(on){ if(!on){ if(panel) panel.style.display='none'; return; } ensurePanel().style.display=''; }
+    function checkAdmin(){
+      if(!sb||!sb.auth||!sb.auth.getUser) return;
+      Promise.resolve(sb.auth.getUser()).then(function(u){
+        var em=u&&u.data&&u.data.user&&u.data.user.email;
+        showAdmin(!!(em&&String(em).toLowerCase()===ADMIN_EMAIL));
+      }).catch(function(){});
+    }
+    if(sb&&sb.auth&&sb.auth.onAuthStateChange){ try{ sb.auth.onAuthStateChange(function(){ checkAdmin(); }); }catch(e){} }
+    load(); checkAdmin();
+  } catch(e){ /* never break the page */ }
+})();
+</script>
 </body></html>
