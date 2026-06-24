@@ -253,7 +253,9 @@
     '  {opacity:1;pointer-events:auto}' +
     '.ctl button{appearance:none;border:0;border-radius:6px;padding:5px 10px;cursor:pointer;' +
     '  background:rgba(0,0,0,.65);color:#fff;font:11px/1 system-ui,-apple-system,sans-serif;' +
-    '  backdrop-filter:blur(6px)}' +
+    '  -webkit-backdrop-filter: blur(6px)}' +
+    '.ctl button:hover{background:rgba(0,0,0,.8)}' +
+    '.err{position:absolute; backdrop-filter: blur(6px)}' +
     '.ctl button:hover{background:rgba(0,0,0,.8)}' +
     '.err{position:absolute;left:8px;bottom:8px;right:8px;color:#b3261e;font-size:11px;' +
     '  background:rgba(255,255,255,.85);padding:4px 6px;border-radius:5px;pointer-events:none}';
@@ -795,8 +797,7 @@
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
   background: color-mix(in oklch, var(--ink) 38%, transparent);
-  backdrop-filter: blur(3px) saturate(120%);
-  -webkit-backdrop-filter: blur(3px) saturate(120%);
+  -webkit-backdrop-filter: blur(3px) saturate(120%); backdrop-filter: blur(3px) saturate(120%);
   opacity: 0; pointer-events: none; transition: opacity .2s;
 }
 .auth-overlay.is-open { opacity: 1; pointer-events: auto; }
@@ -1014,7 +1015,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   /* mobile: the canvas + backdrop blurs are the heaviest things — drop them */
   @media (max-width: 700px) {
     #net, .cursor-glow, .cad-hatch { display: none !important; }
-    .topbar, .study-sheet, .note-sheet, .feed-sheet { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+    .topbar, .study-sheet, .note-sheet, .feed-sheet { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   }
 </style>
 <style>
@@ -1285,6 +1286,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   }
   .featured-art {
     aspect-ratio: 5 / 4; position: relative; overflow: hidden;
+    align-self: start;   /* don't stretch to the text column's height (keeps size identical in Chrome/Firefox) */
     background: var(--paper-2);
     border: 1px solid var(--rule);
   }
@@ -1429,7 +1431,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     z-index: 4; display: inline-flex; align-items: center; gap: 8px;
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.02em;
     background: color-mix(in oklch, var(--paper) 86%, transparent);
-    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
     border: 1px solid var(--rule); padding: 5px 11px; color: var(--ink-2);
     transition: color .2s, border-color .2s;
     white-space: nowrap;
@@ -1452,7 +1454,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   .featured-art .view-toggle {
     position: absolute; right: 14px; top: 14px; z-index: 4;
     display: inline-flex; background: color-mix(in oklch, var(--paper) 86%, transparent);
-    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
     border: 1px solid var(--rule); border-radius: 2px; overflow: hidden;
   }
   .featured-art .view-toggle button {
@@ -1558,8 +1560,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     z-index: 3;
     display: inline-flex; align-items: center; gap: 8px;
     background: color-mix(in oklch, var(--paper) 85%, transparent);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
     border: 1px solid var(--rule-2);
     padding: 6px 10px 6px 8px;
     font-family: var(--mono); font-size: 10.5px;
@@ -1664,8 +1665,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     z-index: 80;
     display: none;
     background: color-mix(in oklch, var(--ink) 35%, transparent);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     overflow-y: auto;
     opacity: 0;
     transition: opacity .25s ease;
@@ -2660,8 +2660,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     z-index: 80;
     display: none;
     background: color-mix(in oklch, var(--ink) 35%, transparent);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     overflow-y: auto;
     opacity: 0;
     transition: opacity .25s ease;
