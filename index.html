@@ -3312,6 +3312,33 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     .featured h3 { font-size: 28px; }
   }
 </style>
+<style>
+/* drawn-in-code avatars + extra profile fields */
+.acct-avatar.has-svg svg, .acct-menu-head .av.has-svg svg { width: 60%; height: 60%; }
+.acct-avatar svg, .acct-menu-head .av svg { display: block; }
+.acct-menu-head .who .tg { font-size: 12px; color: var(--ink-2); margin-top: 3px; line-height: 1.3; }
+.acct-menu-head .who .mt { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 3px; letter-spacing: .02em; }
+.auth-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.av-pick { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.av-pick .av-opt { appearance: none; cursor: pointer; aspect-ratio: 1; border: 1px solid var(--rule); background: var(--paper-2); border-radius: 10px; color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; padding: 0; transition: border-color .12s, color .12s, background .12s; }
+.av-pick .av-opt svg { width: 58%; height: 58%; display: block; }
+.av-pick .av-opt .av-ini { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.av-pick .av-opt:hover { border-color: var(--rule-2); color: var(--ink); }
+.av-pick .av-opt[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--paper)); }
+@media (max-width: 560px) { .av-pick { grid-template-columns: repeat(5, 1fr); } .auth-row2 { grid-template-columns: 1fr; } }
+</style>
+<style>
+/* bio textarea + profile card extras */
+.auth-field textarea { appearance: none; width: 100%; box-sizing: border-box; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); padding: 12px 14px; font-family: var(--sans); font-size: 14px; line-height: 1.45; outline: none; resize: vertical; min-height: 66px; transition: border-color .15s; }
+.auth-field textarea:focus { border-color: var(--accent); }
+.acct-menu-head .who { min-width: 0; }
+.acct-menu-head .who .tg { overflow-wrap: anywhere; }
+.acct-menu-head .who .st { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); margin-top: 5px; }
+.acct-menu-head .who .st::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; margin-right: 6px; flex: none; }
+.acct-menu-head .who .lk { display: flex; gap: 14px; margin-top: 6px; }
+.acct-menu-head .who .lk a { font-family: var(--mono); font-size: 10.5px; color: var(--accent); text-decoration: none; letter-spacing: .02em; }
+.acct-menu-head .who .lk a:hover { text-decoration: underline; }
+</style>
 </head>
 <body class="lang-en">
 
@@ -5972,6 +5999,32 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   ];
   const accentHex = (id) => (ACCENTS.find(a => a.id === id) || ACCENTS[0]).hex;
 
+  /* ---------- generic, drawn-in-code avatars (no external art = DMCA-free) ---------- */
+  const AVATARS = [
+    { id:'rings',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.5"/><circle cx="12" cy="12" r="8"/></svg>' },
+    { id:'wave',   svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12c2-5 4-5 6 0s4 5 6 0 4-5 6 0"/></svg>' },
+    { id:'gear',   svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19"/></svg>' },
+    { id:'tri',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l8.5 14.5h-17z"/></svg>' },
+    { id:'hex',    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z"/></svg>' },
+    { id:'dots',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="8" r="1.7"/><circle cx="16" cy="8" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="8" cy="16" r="1.7"/><circle cx="16" cy="16" r="1.7"/></svg>' },
+    { id:'bars',   svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 18v-6M12 18V6M18 18v-3"/></svg>' },
+    { id:'square', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1.5"/><rect x="9" y="9" width="6" height="6"/></svg>' },
+    { id:'orbit',  svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><ellipse cx="12" cy="12" rx="9.5" ry="3.6" transform="rotate(-22 12 12)"/></svg>' },
+    { id:'bolt',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L5 13h5l-1 9 9-12h-6z"/></svg>' },
+    { id:'target', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/><path d="M12 4a8 8 0 1 1-8 8"/></svg>' },
+    { id:'chev',   svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4-4 4 4M11 17l4-4 4 4"/></svg>' },
+  ];
+  const hasAvatar = (id) => AVATARS.some(a => a.id === id);
+  const avatarSvg = (id) => ((AVATARS.find(a => a.id === id) || {}).svg || '');
+  function avatarCls(u){ return hasAvatar(u.avatar) ? ' has-svg' : ''; }
+  function avatarStyleAttr(u){
+    const hex = accentHex(u.accent);
+    return hasAvatar(u.avatar)
+      ? 'background:color-mix(in srgb,' + hex + ' 15%,var(--paper));color:' + hex
+      : 'background:' + hex;
+  }
+  function avatarInner(u){ return hasAvatar(u.avatar) ? avatarSvg(u.avatar) : initials(u.displayName, u.email); }
+
   /* ---------- demo-mode local store ---------- */
   const LS = {
     users: 'meyana.demo.users',
@@ -5991,6 +6044,14 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       email: u.email || '',
       displayName: md.display_name || (u.email ? u.email.split('@')[0] : 'me'),
       accent: md.accent || 'blue',
+      avatar: md.avatar || 'initials',
+      tagline: md.tagline || '',
+      status: md.status || '',
+      bio: md.bio || '',
+      role: md.role || '',
+      location: md.location || '',
+      link: md.link || '',
+      github: md.github || '',
     };
   }
   function initials(name, email) {
@@ -6011,9 +6072,9 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     if (currentUser) {
       const hex = accentHex(currentUser.accent);
       holder.innerHTML =
-        '<button type="button" class="acct-avatar" id="acct-avatar" aria-haspopup="true" aria-expanded="false" ' +
-        'style="background:' + hex + '" aria-label="Account menu">' +
-        initials(currentUser.displayName, currentUser.email) + '</button>';
+        '<button type="button" class="acct-avatar' + avatarCls(currentUser) + '" id="acct-avatar" aria-haspopup="true" aria-expanded="false" ' +
+        'style="' + avatarStyleAttr(currentUser) + '" aria-label="Account menu">' +
+        avatarInner(currentUser) + '</button>';
       document.getElementById('acct-avatar').addEventListener('click', toggleMenu);
     } else {
       holder.innerHTML =
@@ -6036,9 +6097,17 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     const hex = accentHex(currentUser.accent);
     menuEl.innerHTML =
       '<div class="acct-menu-head">' +
-        '<span class="av" style="background:' + hex + '">' + initials(currentUser.displayName, currentUser.email) + '</span>' +
+        '<span class="av' + avatarCls(currentUser) + '" style="' + avatarStyleAttr(currentUser) + '">' + avatarInner(currentUser) + '</span>' +
         '<span class="who"><span class="nm">' + esc(currentUser.displayName) + '</span>' +
-        '<span class="em">' + esc(currentUser.email) + '</span></span>' +
+        '<span class="em">' + esc(currentUser.email) + '</span>' +
+        (currentUser.tagline ? '<span class="tg">' + esc(currentUser.tagline) + '</span>' : '') +
+        ((currentUser.role || currentUser.location) ? '<span class="mt">' + esc([currentUser.role, currentUser.location].filter(Boolean).join('  ·  ')) + '</span>' : '') +
+        (currentUser.status ? '<span class="st">' + esc(currentUser.status) + '</span>' : '') +
+        ((currentUser.github || currentUser.link) ? '<span class="lk">' +
+          (currentUser.github ? '<a href="' + esc(currentUser.github) + '" target="_blank" rel="noopener">GitHub</a>' : '') +
+          (currentUser.link ? '<a href="' + esc(currentUser.link) + '" target="_blank" rel="noopener">Website</a>' : '') +
+        '</span>' : '') +
+        '</span>' +
       '</div>' +
       '<div class="acct-menu-sec">' +
         '<p class="acct-menu-label">Avatar colour</p>' +
@@ -6357,11 +6426,34 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         '<form class="auth-form" id="settings-form" novalidate>' +
           '<div class="auth-field"><label for="set-name">Display name</label>' +
             '<input type="text" id="set-name" autocomplete="name" /></div>' +
+          '<div class="auth-field"><label for="set-tagline">Tagline</label>' +
+            '<input type="text" id="set-tagline" maxlength="80" placeholder="one line about you" /></div>' +
+          '<div class="auth-field"><label for="set-status">Status</label>' +
+            '<input type="text" id="set-status" maxlength="60" placeholder="what you’re working on right now" /></div>' +
+          '<div class="auth-field"><label for="set-bio">Bio</label>' +
+            '<textarea id="set-bio" maxlength="280" rows="3" placeholder="a few sentences about you"></textarea></div>' +
+          '<div class="auth-row2">' +
+            '<div class="auth-field"><label for="set-role">Role</label>' +
+              '<input type="text" id="set-role" maxlength="48" placeholder="CPGE MP · embedded" /></div>' +
+            '<div class="auth-field"><label for="set-location">Location</label>' +
+              '<input type="text" id="set-location" maxlength="48" placeholder="Rabat, Morocco" /></div>' +
+          '</div>' +
+          '<div class="auth-row2">' +
+            '<div class="auth-field"><label for="set-link">Website</label>' +
+              '<input type="url" id="set-link" inputmode="url" placeholder="your-site.com" /></div>' +
+            '<div class="auth-field"><label for="set-github">GitHub</label>' +
+              '<input type="text" id="set-github" maxlength="60" placeholder="github.com/you or @you" /></div>' +
+          '</div>' +
           '<div class="auth-field"><label for="set-email">Email</label>' +
             '<input type="email" id="set-email" autocomplete="email" /></div>' +
           '<div class="auth-field auth-accent-row"><label>Avatar colour</label>' +
             '<div class="row" id="set-accent">' +
               ACCENTS.map(a => '<button type="button" class="sw" data-accent="' + a.id + '" style="background:' + a.hex + '" aria-pressed="false" aria-label="' + a.id + '"></button>').join('') +
+            '</div></div>' +
+          '<div class="auth-field"><label>Avatar</label>' +
+            '<div class="av-pick" id="set-avatar">' +
+              '<button type="button" class="av-opt" data-avatar="initials" aria-pressed="false" title="Initials"><span class="av-ini" id="av-ini-preview">' + initials(currentUser.displayName, currentUser.email) + '</span></button>' +
+              AVATARS.map(a => '<button type="button" class="av-opt" data-avatar="' + a.id + '" aria-pressed="false" title="' + a.id + '">' + a.svg + '</button>').join('') +
             '</div></div>' +
           '<div class="auth-field"><label for="set-pw">New password</label>' +
             '<div class="auth-pw-wrap">' +
@@ -6389,6 +6481,11 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         document.getElementById('set-accent').querySelectorAll('.sw').forEach(x =>
           x.setAttribute('aria-pressed', String(x === b)));
       }));
+    var _avp = document.getElementById('set-avatar');
+    if (_avp) _avp.querySelectorAll('.av-opt').forEach(b =>
+      b.addEventListener('click', () => {
+        _avp.querySelectorAll('.av-opt').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      }));
     document.getElementById('settings-form').addEventListener('submit', onSaveSettings);
     document.getElementById('settings-so').addEventListener('click', () => { closeSettings(); doSignOut(); });
   }
@@ -6402,6 +6499,19 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     document.getElementById('set-pw-toggle').textContent = 'show';
     document.getElementById('set-accent').querySelectorAll('.sw').forEach(x =>
       x.setAttribute('aria-pressed', String(x.dataset.accent === currentUser.accent)));
+    document.getElementById('set-tagline').value = currentUser.tagline || '';
+    document.getElementById('set-status').value = currentUser.status || '';
+    document.getElementById('set-bio').value = currentUser.bio || '';
+    document.getElementById('set-role').value = currentUser.role || '';
+    document.getElementById('set-location').value = currentUser.location || '';
+    document.getElementById('set-link').value = currentUser.link || '';
+    document.getElementById('set-github').value = currentUser.github || '';
+    var _ap = document.getElementById('set-avatar');
+    if (_ap) {
+      var _cur = currentUser.avatar || 'initials';
+      _ap.querySelectorAll('.av-opt').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.avatar === _cur)));
+      var _ini = document.getElementById('av-ini-preview'); if (_ini) _ini.textContent = initials(currentUser.displayName, currentUser.email);
+    }
     document.getElementById('settings-who').textContent = currentUser.email || '';
     setSetMsg('');
     settingsEl.classList.add('is-open');
@@ -6418,6 +6528,21 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     const pw = document.getElementById('set-pw').value;
     const selSw = document.querySelector('#set-accent .sw[aria-pressed="true"]');
     const accent = selSw ? selSw.dataset.accent : currentUser.accent;
+    const tagline = document.getElementById('set-tagline').value.trim();
+    const status = document.getElementById('set-status').value.trim();
+    const bio = document.getElementById('set-bio').value.trim();
+    const role = document.getElementById('set-role').value.trim();
+    const location = document.getElementById('set-location').value.trim();
+    let link = document.getElementById('set-link').value.trim();
+    if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
+    let github = document.getElementById('set-github').value.trim().replace(/^@/, '');
+    if (github) {
+      if (/^https?:\/\//i.test(github)) { /* full url already */ }
+      else if (/^github\.com/i.test(github)) github = 'https://' + github;
+      else github = 'https://github.com/' + github;
+    }
+    const selAv = document.querySelector('#set-avatar .av-opt[aria-pressed="true"]');
+    const avatar = selAv ? selAv.dataset.avatar : (currentUser.avatar || 'initials');
     if (!name) return setSetMsg('Display name can’t be empty.', 'err');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setSetMsg('Enter a valid email.', 'err');
     if (pw && pw.length < 6) return setSetMsg('New password must be at least 6 characters.', 'err');
@@ -6429,16 +6554,18 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         const rec = users[currentUser.email] || { email: currentUser.email, password: '', displayName: name, accent };
         delete users[currentUser.email];
         rec.email = email; rec.displayName = name; rec.accent = accent; if (pw) rec.password = pw;
+        rec.avatar = avatar; rec.tagline = tagline; rec.status = status; rec.bio = bio; rec.role = role; rec.location = location; rec.link = link; rec.github = github;
         users[email] = rec; writeJSON(LS.users, users); writeJSON(LS.session, email);
-        currentUser = { email, displayName: name, accent };
+        currentUser = { email, displayName: name, accent, avatar, tagline, status, bio, role, location, link, github };
         finishSettings(false);
       } else {
-        const payload = { data: { display_name: name, accent } };
+        const payload = { data: { display_name: name, accent, avatar, tagline, status, bio, role, location, link, github } };
         if (emailChanged) payload.email = email;
         if (pw) payload.password = pw;
         const { error } = await sb.auth.updateUser(payload);
         if (error) throw error;
         currentUser.displayName = name; currentUser.accent = accent;
+        currentUser.avatar = avatar; currentUser.tagline = tagline; currentUser.status = status; currentUser.bio = bio; currentUser.role = role; currentUser.location = location; currentUser.link = link; currentUser.github = github;
         if (!emailChanged) currentUser.email = email;
         finishSettings(emailChanged);
       }
