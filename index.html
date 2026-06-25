@@ -6452,7 +6452,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
             '</div></div>' +
           '<div class="auth-field"><label>Avatar</label>' +
             '<div class="av-pick" id="set-avatar">' +
-              '<button type="button" class="av-opt" data-avatar="initials" aria-pressed="false" title="Initials"><span class="av-ini" id="av-ini-preview">' + initials(currentUser.displayName, currentUser.email) + '</span></button>' +
+              '<button type="button" class="av-opt" data-avatar="initials" aria-pressed="false" title="Initials"><span class="av-ini" id="av-ini-preview"></span></button>' +
               AVATARS.map(a => '<button type="button" class="av-opt" data-avatar="' + a.id + '" aria-pressed="false" title="' + a.id + '">' + a.svg + '</button>').join('') +
             '</div></div>' +
           '<div class="auth-field"><label for="set-pw">New password</label>' +
