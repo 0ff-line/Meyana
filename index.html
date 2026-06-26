@@ -1405,21 +1405,9 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   /* the moving assembly — wobbles under disturbance in PID mode */
   .featured-art .bp-assembly { transform-box: view-box; transform-origin: 250px 188px; transition: transform .3s; }
   .featured-art .bp-pitch { transform-box: view-box; transform-origin: 250px 188px; }
-  /* live limit-cycle oscillation: only PID + high disturbance */
-  .featured-art[data-view="blueprint"][data-mode="pid"].is-cycling .bp-pitch {
-    animation: bp-limitcycle 0.53s ease-in-out infinite; /* ~1.9 Hz */
-  }
-  .featured-art[data-view="blueprint"][data-mode="pid"].is-cycling .bp-assembly {
-    animation: bp-shake 0.53s ease-in-out infinite;
-  }
-  @keyframes bp-limitcycle {
-    0%,100% { transform: rotate(-7deg); }
-    50%     { transform: rotate(7deg); }
-  }
-  @keyframes bp-shake {
-    0%,100% { transform: rotate(-1.1deg); }
-    50%     { transform: rotate(1.1deg); }
-  }
+  /* The limit-cycle wobble is now produced by the real-time gimbal simulation:
+     the sim writes .bp-pitch's transform every frame, so the old CSS keyframe
+     animation (whose oscillation period was hard-coded in CSS) has been removed. */
   /* RL mode: inner ring settles dead-steady, accent goes "locked" green */
   .featured-art[data-mode="rl"] .bp-lockdot { fill: var(--good); }
   .featured-art[data-mode="rl"] .bp .ring-pitch { stroke: var(--good); }
@@ -3311,6 +3299,68 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     .section-head h2 { font-size: 26px; }
     .featured h3 { font-size: 28px; }
   }
+
+  /* ============ SEARCH ============ */
+  .search-btn {
+    appearance: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; padding: 0; border: 1px solid var(--rule); background: var(--paper);
+    color: var(--ink-2); transition: border-color .15s, color .15s;
+  }
+  .search-btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .search-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+  .search-overlay {
+    position: fixed; inset: 0; z-index: 2100; display: none;
+    background: color-mix(in oklch, var(--ink) 30%, transparent);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    padding: 11vh 20px 20px;
+  }
+  .search-overlay.is-open { display: block; }
+  .search-panel {
+    max-width: 640px; margin: 0 auto; background: var(--paper);
+    border: 1px solid var(--rule); box-shadow: 0 24px 64px -28px rgba(0,0,0,.55);
+    display: flex; flex-direction: column; max-height: 74vh;
+  }
+  .search-bar { display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-bottom: 1px solid var(--rule); }
+  .search-ic { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--ink-3); stroke-width: 2; }
+  #search-input {
+    flex: 1; appearance: none; border: 0; background: transparent; outline: none;
+    font-family: var(--sans); font-size: 16px; color: var(--ink); min-width: 0;
+  }
+  #search-input::placeholder { color: var(--ink-3); }
+  .search-close {
+    appearance: none; cursor: pointer; border: 1px solid var(--rule); background: var(--paper-2);
+    color: var(--ink-3); font-family: var(--mono); font-size: 11px; padding: 3px 8px; flex: none;
+  }
+  .search-close:hover { color: var(--ink); border-color: var(--ink-3); }
+  .search-results { overflow-y: auto; }
+  .search-result {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    border: 0; border-bottom: 1px solid var(--rule); background: transparent;
+    padding: 12px 16px; transition: background .12s;
+  }
+  .search-result:hover, .search-result.is-active { background: var(--paper-2); }
+  .search-result .sr-top { display: flex; align-items: baseline; gap: 9px; margin-bottom: 3px; }
+  .search-result .sr-type {
+    font-family: var(--mono); font-size: 9px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--accent-ink); border: 1px solid color-mix(in oklch, var(--accent) 38%, transparent);
+    padding: 1px 6px; flex: none;
+  }
+  .search-result .sr-title { font-family: var(--sans); font-weight: 600; font-size: 14.5px; color: var(--ink); line-height: 1.3; }
+  .search-result .sr-snip { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
+  .search-result mark, .search-empty mark { background: color-mix(in oklch, var(--accent) 20%, var(--paper)); color: var(--accent-ink); border-radius: 2px; padding: 0 1px; }
+  .search-empty { padding: 26px 16px; text-align: center; color: var(--ink-3); font-size: 13px; }
+  .search-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 9px 16px; border-top: 1px solid var(--rule);
+    font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
+  }
+  .search-flash { outline: 2px solid var(--accent); outline-offset: 2px; transition: outline-color .4s; }
+  [dir="rtl"] .search-result { text-align: right; }
+  @media (max-width: 560px) {
+    .search-overlay { padding: 7vh 12px 12px; }
+    .search-foot .search-hint { display: none; }
+  }
 </style>
 <style>
 /* drawn-in-code avatars + extra profile fields */
@@ -3383,6 +3433,9 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       </nav>
       <div class="corner">
         <span class="loc"><span class="live" aria-hidden="true"></span><span data-i18n="header_loc">Rabat · MA</span></span>
+        <button type="button" class="search-btn" id="search-open" aria-label="Search" title="Search (press /)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.2-4.2" stroke-linecap="round"></path></svg>
+        </button>
         <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
           <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-linecap="round"></path></svg>
           <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-linejoin="round"></path></svg>
@@ -3581,7 +3634,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
           <div class="featured-body">
             <div class="featured-tag" data-i18n="featured_tag">mechanics · control · reinforcement learning</div>
             <h3 data-i18n="featured_h3">One rig, three layers of control. <span class="accent">PID keeps it safe, a learned net makes it sharp, online adaptation holds the line.</span></h3>
-            <p data-i18n="featured_p">A 2-axis brushless camera gimbal on a Storm32 mount, sensed by an MPU-6050 IMU at 200 Hz and run entirely on a ~380 MAD ESP32. Identified as a lightly-damped 2ⁿᵈ-order plant (ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18), it pits a cascade PID against a PPO policy — then fuses them. Under added load and delay the PID falls into a self-sustained 1.9 Hz limit cycle; the autonomous controller stacks an auto-tuned PID, a frozen PPO residual net, and a safe online bias to erase that cycle (&gt; 99 %) and keep erasing it as the hardware drifts.</p>
+            <p data-i18n="featured_p">A 2-axis brushless camera gimbal on a Storm32 mount, sensed by an MPU-6050 IMU at 200 Hz and run entirely on a ~380 MAD ESP32. Identified as a lightly-damped 2ⁿᵈ-order plant (ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18), it pits a cascade PID against a PPO policy — then fuses them. Under added load and delay the PID falls into a self-sustained 3.2 Hz limit cycle; the autonomous controller stacks an auto-tuned PID, a frozen PPO residual net, and a safe online bias to erase that cycle (&gt; 99 %) and keep erasing it as the hardware drifts.</p>
 
             <div class="specs" aria-label="Technical specifications">
               <div class="row"><span class="k" data-i18n="spec_payload_k">axes</span><span class="v" data-i18n="spec_payload_v">2 · yaw + pitch (Storm32)</span></div>
@@ -3636,11 +3689,11 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
             <!-- interactive disturbance control -->
             <div class="disturbance" aria-label="Added delay (limit-cycle test)">
               <div class="head">
-                <span data-i18n="dist_label">test C · added loop delay → PID enters 1.9 Hz cycle</span>
+                <span data-i18n="dist_label">test C · added loop delay → PID enters 3.2 Hz cycle</span>
                 <span class="val" id="dist-val">+ 7 ms</span>
               </div>
               <input type="range" id="dist-slider" min="0" max="100" value="0" step="1" aria-label="Added loop delay">
-              <div class="ticks"><span>nominal</span><span>+ 10 ms</span><span>+ 20 ms</span><span>+ 30 ms</span></div>
+              <div class="ticks"><span>nominal</span><span>+ 20 ms</span><span>+ 40 ms</span><span>+ 60 ms</span></div>
             </div>
 
             <a href="#" class="cta" id="open-study"><span data-i18n="cta_buildlog">Read the build log</span> <span class="arrow">→</span></a>
@@ -3705,7 +3758,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
             <article class="buildlog-entry">
               <span class="when">feb 2026</span>
               <div class="body">
-                <span class="proj accent">Gimbal · TIPE</span><span>Found the 1.9 Hz self-sustained limit cycle: add loop delay and the PID overshoots, re-corrects, oscillates. An FFT on the pitch error matches the describing-function prediction.</span>
+                <span class="proj accent">Gimbal · TIPE</span><span>Found the 3.2 Hz self-sustained limit cycle: add loop delay and the PID overshoots, re-corrects, oscillates. An FFT on the pitch error matches the describing-function prediction.</span>
                 <small>notes/limit_cycle.ipynb</small>
               </div>
               <div class="meta">
@@ -3775,7 +3828,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
           <article class="card" data-tags="control">
             <div class="row1"><span class="num">№ 03</span><span>2025 — 2026 · TIPE</span></div>
             <h4 data-i18n="card_03_h">Describing-function &amp; limit-cycle analysis</h4>
-            <p data-i18n="card_03_p">The control-theory core: predicting the gimbal's 1.9 Hz self-sustained oscillation from the loop nonlinearity with the describing-function method, then confirming it on the bench by FFT.</p>
+            <p data-i18n="card_03_p">The control-theory core: predicting the gimbal's 3.2 Hz self-sustained oscillation from the loop nonlinearity with the describing-function method, then confirming it on the bench by FFT.</p>
             <div class="tags">
               <span class="tag is-accent">control</span><span class="tag">nonlinear</span><span class="tag">fft</span>
             </div>
@@ -3811,7 +3864,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
           </a>
           <a class="note" href="#" data-note="pid-vs-rl">
             <span class="date">2026 · 04</span>
-            <span class="title" data-i18n="note_02">When cascade PID still wins — and the 1.9 Hz cycle limit that says it doesn't.</span>
+            <span class="title" data-i18n="note_02">When cascade PID still wins — and the 3.2 Hz cycle limit that says it doesn't.</span>
             <span class="read">8 min</span>
           </a>
           <a class="note" href="#" data-note="ppo-clip">
@@ -4068,6 +4121,19 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   </footer>
 
   <!-- ============ GIMBAL STUDY · DETAIL OVERLAY ============ -->
+  <!-- ============ SEARCH ============ -->
+  <div class="search-overlay" id="search-overlay" role="dialog" aria-label="Search" aria-hidden="true">
+    <div class="search-panel">
+      <div class="search-bar">
+        <svg class="search-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.2-4.2" stroke-linecap="round"></path></svg>
+        <input type="text" id="search-input" placeholder="Search projects, notes, the build log…" autocomplete="off" spellcheck="false" aria-label="Search query">
+        <button type="button" class="search-close" id="search-close" aria-label="Close search">esc</button>
+      </div>
+      <div class="search-results" id="search-results"></div>
+      <div class="search-foot"><span id="search-count"></span><span class="search-hint">↑ ↓ move · ↵ open · esc close</span></div>
+    </div>
+  </div>
+
   <div class="study-overlay" id="study-overlay" role="dialog" aria-label="Gimbal study — full detail" aria-hidden="true">
     <div class="study-sheet">
       <button type="button" class="study-close" id="study-close" aria-label="Close">×</button>
@@ -4217,9 +4283,9 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
           </table>
           <p>Self-tuning already halves the static PID's settling time and overshoot. PPO goes further — fastest, lowest overshoot, and <strong>2.4× more delay margin</strong>.</p>
 
-          <h3 style="margin-top:24px;">Test C · the <span class="accent">1.9 Hz limit cycle</span> appears</h3>
+          <h3 style="margin-top:24px;">Test C · the <span class="accent">3.2 Hz limit cycle</span> appears</h3>
           <p>
-            Under strong friction and added delay, the static PID enters a self-sustained oscillation at <strong>f = 1.9 Hz, amplitude ± 0.08 rad</strong>. The linearised pulsation predicts f<sub>n</sub> = ωₙ / 2π = 1.97 Hz — agreement within ~ 4 %, exactly the limit cycle Slotine &amp; Li's describing-function analysis predicts for a linear controller against a hard non-linearity. A linear loop, by construction, cannot guarantee it away. The learned controller can.
+            Under strong friction and added loop delay, the static PID falls into a self-sustained oscillation at <strong>f ≈ 3.2 Hz</strong> — and the important question is <em>where</em> that frequency comes from. It is <strong>not</strong> the natural pulsation: f<sub>n</sub> = ωₙ / 2π ≈ 1.97 Hz sits well below it. The cycle is <strong>delay-induced</strong> — it settles at the frequency where the open-loop phase (plant + controller + the added loop delay) crosses −180°, the classic describing-function condition (Slotine &amp; Li, 1991) for a linear controller driven into a hard non-linearity, here actuator saturation. Drag the delay slider on the live panel above and the oscillation frequency shifts with it, exactly as a phase-crossover frequency should. A linear loop, by construction, cannot guarantee it away; a controller with enough delay margin can.
           </p>
         </section>
 
@@ -4278,7 +4344,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
                 <line x1="0" y1="46" x2="320" y2="46"></line>
                 <line x1="80" y1="0" x2="80" y2="92"></line><line x1="160" y1="0" x2="160" y2="92"></line><line x1="240" y1="0" x2="240" y2="92"></line>
               </g>
-              <!-- PID only: sustained 1.9 Hz limit cycle -->
+              <!-- PID only: sustained 3.2 Hz limit cycle -->
               <path d="M0,46 C10,8 20,8 30,46 C40,84 50,84 60,46 C70,8 80,8 90,46 C100,84 110,84 120,46 C130,8 140,8 150,46 C160,84 170,84 180,46 C190,8 200,8 210,46 C220,84 230,84 240,46 C250,8 260,8 270,46 C280,84 290,84 300,46 L320,46" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round"></path>
               <!-- with residual: flat -->
               <path d="M0,46 L320,46" fill="none" stroke="var(--accent)" stroke-width="1.6"></path>
@@ -4386,9 +4452,6 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       <div class="eyebrow" id="note-eyebrow">2026 · 04 · bench note</div>
       <h2 id="note-title">Title</h2>
       <div id="note-body"></div>
-      <div class="placeholder-note">
-        <strong>Placeholder:</strong> these notes are short stubs you can replace later with a detailed version. The build &amp; data sources are already wired — only the prose needs swapping.
-      </div>
     </div>
   </div>
 
@@ -4470,27 +4533,9 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   (function () {
     // --------- gimbal PID/RL toggle + blueprint status ----------
     const featuredArtEl = document.querySelector('.featured-art');
-    const bpStatusText  = document.getElementById('bp-status-text');
-    let bpDisturbN = 0; // 0..1, set by the disturbance slider below
-
-    function updateBpStatus() {
-      if (!featuredArtEl) return;
-      const mode = featuredArtEl.dataset.mode || 'pid';
-      const pct  = Math.round(bpDisturbN * 30); // added ms of loop delay
-      // PID falls into the 1.9 Hz limit cycle past ~18 ms of added delay;
-      // the learned controller stays clean across the whole range.
-      const cycling = (mode === 'pid' && bpDisturbN > 0.55);
-      featuredArtEl.classList.toggle('is-cycling', cycling);
-      if (bpStatusText) {
-        if (cycling) {
-          bpStatusText.textContent = 'PID · 1.9 Hz limit cycle · +' + pct + ' ms';
-        } else if (mode === 'pid') {
-          bpStatusText.textContent = pct > 0 ? ('PID · holding · +' + pct + ' ms') : 'PID · stable · nominal';
-        } else {
-          bpStatusText.textContent = pct > 0 ? ('RL · locked · +' + pct + ' ms') : 'RL · locked · nominal';
-        }
-      }
-    }
+    // The blueprint status text and the pitch motion are now driven by the
+    // real-time gimbal simulation (see the "real-time gimbal simulation"
+    // script just before </body>).
 
     const ctlBtns = document.querySelectorAll('.ctl-toggle button');
     ctlBtns.forEach(b => {
@@ -4498,7 +4543,6 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         ctlBtns.forEach(x => x.classList.remove('is-on'));
         b.classList.add('is-on');
         if (featuredArtEl) featuredArtEl.dataset.mode = b.dataset.mode;
-        updateBpStatus();
       });
     });
 
@@ -4590,7 +4634,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         featured_h2: 'Atlas Gimbal — a 2-axis stabilizer where <span class="accent">PID, a learned net, and online adaptation</span> share one loop.',
         featured_tag: "mechanics · control · reinforcement learning",
         featured_h3: 'One rig, three layers of control. <span class="accent">PID keeps it safe, a learned net makes it sharp, online adaptation holds the line.</span>',
-        featured_p: "A 2-axis brushless camera gimbal on a Storm32 mount, sensed by an MPU-6050 IMU at 200 Hz and run entirely on a ~380 MAD ESP32. Identified as a lightly-damped 2ⁿᵈ-order plant (ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18), it pits a cascade PID against a PPO policy — then fuses them. Under added load and delay the PID falls into a self-sustained 1.9 Hz limit cycle; the autonomous controller stacks an auto-tuned PID, a frozen PPO residual net, and a safe online bias to erase that cycle (> 99 %) and keep erasing it as the hardware drifts.",
+        featured_p: "A 2-axis brushless camera gimbal on a Storm32 mount, sensed by an MPU-6050 IMU at 200 Hz and run entirely on a ~380 MAD ESP32. Identified as a lightly-damped 2ⁿᵈ-order plant (ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18), it pits a cascade PID against a PPO policy — then fuses them. Under added load and delay the PID falls into a self-sustained 3.2 Hz limit cycle; the autonomous controller stacks an auto-tuned PID, a frozen PPO residual net, and a safe online bias to erase that cycle (> 99 %) and keep erasing it as the hardware drifts.",
 
         spec_payload_k: "axes",      spec_payload_v: "2 · yaw + pitch (Storm32)",
         spec_actuation_k: "actuation",spec_actuation_v: "2× BLDC, torque-controlled",
@@ -4610,7 +4654,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         card_02_h: "PPO training pipeline + custom Gymnasium environment",
         card_02_p: "The simulation side of the TIPE: the gimbal modelled as a 2ⁿᵈ-order Gymnasium environment and trained with Stable-Baselines3 PPO under domain randomization (~1 M steps), until the policy beats the hand-tuned PID on settling time.",
         card_03_h: "Describing-function & limit-cycle analysis",
-        card_03_p: "The control-theory core: predicting the gimbal's 1.9 Hz self-sustained oscillation from the loop nonlinearity with the describing-function method, then confirming it on the bench by FFT.",
+        card_03_p: "The control-theory core: predicting the gimbal's 3.2 Hz self-sustained oscillation from the loop nonlinearity with the describing-function method, then confirming it on the bench by FFT.",
         card_04_h: "Gimbal Lab — open sim + training code",
         card_04_p: "Packaging the environment, the training scripts, and the C++ export into a small open repo so the whole PID-vs-PPO comparison is reproducible end to end. Still being cleaned up.",
         card_05_h: "Defect detection for sand-cast parts",
@@ -4636,7 +4680,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         notes_eyebrow: "Notes & writing",
         notes_h2: "Bench notes, sometimes in French.",
         note_01: "Sim-to-real for the gimbal: what survived from the sim, what didn't.",
-        note_02: "When cascade PID still wins — and the 1.9 Hz cycle limit that says it doesn't.",
+        note_02: "When cascade PID still wins — and the 3.2 Hz cycle limit that says it doesn't.",
         note_03: "PPO clipping and why ε = 0.2 is a surprisingly robust default.",
         note_04: "A short guide to domain randomization for a 2-axis gimbal.",
         note_05: "Identifying a gimbal as a 2ⁿᵈ order plant — step responses and a 2.3 % RMS residual.",
@@ -4722,7 +4766,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         featured_h2: 'Atlas Gimbal — un stabilisateur 2 axes où <span class="accent">PID, réseau appris et adaptation en ligne</span> partagent une seule boucle.',
         featured_tag: "mécanique · contrôle · apprentissage par renforcement",
         featured_h3: 'Un montage, trois couches de commande. <span class="accent">Le PID assure la sûreté, le réseau la performance, l\'adaptation en ligne la maintient.</span>',
-        featured_p: "Un gimbal caméra brushless 2 axes sur monture Storm32, mesuré par une IMU MPU-6050 à 200 Hz et piloté entièrement par un ESP32 à ~380 MAD. Identifié comme un système du 2ⁿᵈ ordre faiblement amorti (ωₙ ≈ 12,4 rad/s, ζ ≈ 0,18), il oppose un PID cascade à une politique PPO — puis les fusionne. Sous charge et retard ajoutés, le PID tombe dans un cycle limite auto-entretenu à 1,9 Hz ; le contrôleur autonome empile un PID auto-réglé, un réseau résiduel PPO gelé et un biais en ligne sûr pour effacer ce cycle (> 99 %) et continuer à l'effacer quand le matériel dérive.",
+        featured_p: "Un gimbal caméra brushless 2 axes sur monture Storm32, mesuré par une IMU MPU-6050 à 200 Hz et piloté entièrement par un ESP32 à ~380 MAD. Identifié comme un système du 2ⁿᵈ ordre faiblement amorti (ωₙ ≈ 12,4 rad/s, ζ ≈ 0,18), il oppose un PID cascade à une politique PPO — puis les fusionne. Sous charge et retard ajoutés, le PID tombe dans un cycle limite auto-entretenu à 3,2 Hz ; le contrôleur autonome empile un PID auto-réglé, un réseau résiduel PPO gelé et un biais en ligne sûr pour effacer ce cycle (> 99 %) et continuer à l'effacer quand le matériel dérive.",
 
         spec_payload_k: "axes",      spec_payload_v: "2 · lacet + tangage (Storm32)",
         spec_actuation_k: "moteurs", spec_actuation_v: "2× BLDC, commandés en couple",
@@ -4742,7 +4786,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         card_02_h: "Pipeline d'entraînement PPO + environnement Gymnasium sur mesure",
         card_02_p: "Le volet simulation du TIPE : le cardan modélisé comme un environnement Gymnasium du 2ⁿᵈ ordre et entraîné avec Stable-Baselines3 PPO sous randomisation de domaine (~1 M steps), jusqu'à battre le PID réglé à la main sur le temps de stabilisation.",
         card_03_h: "Fonction descriptive & analyse du cycle limite",
-        card_03_p: "Le cœur théorie du contrôle : prédire l'oscillation auto-entretenue à 1,9 Hz du cardan à partir de la non-linéarité par la méthode de la fonction descriptive, puis la confirmer au banc par FFT.",
+        card_03_p: "Le cœur théorie du contrôle : prédire l'oscillation auto-entretenue à 3,2 Hz du cardan à partir de la non-linéarité par la méthode de la fonction descriptive, puis la confirmer au banc par FFT.",
         card_04_h: "Gimbal Lab — code de simulation et d'entraînement ouvert",
         card_04_p: "Regrouper l'environnement, les scripts d'entraînement et l'export C++ dans un petit dépôt ouvert pour que toute la comparaison PID-vs-PPO soit reproductible de bout en bout. Encore en cours de nettoyage.",
         card_05_h: "Détection de défauts pour pièces de fonderie",
@@ -4768,7 +4812,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         notes_eyebrow: "Notes et écrits",
         notes_h2: "Notes d'atelier, parfois en anglais.",
         note_01: "Sim-to-real pour le gimbal : ce qui a survécu à la sim, et ce qui n'a pas.",
-        note_02: "Quand le PID cascade gagne encore — et le cycle limite à 1,9 Hz qui dit le contraire.",
+        note_02: "Quand le PID cascade gagne encore — et le cycle limite à 3,2 Hz qui dit le contraire.",
         note_03: "Le clipping de PPO et pourquoi ε = 0,2 est un défaut étonnamment robuste.",
         note_04: "Un petit guide de randomisation de domaine pour un gimbal 2 axes.",
         note_05: "Identifier un gimbal comme système du 2ⁿᵈ ordre — réponses indicielles et résidu 2,3 % RMS.",
@@ -4854,7 +4898,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         featured_h2: 'أطلس جيمبال — مثبّت بمحوَرَين حيث يتقاسم <span class="accent">PID وشبكة مُتعلَّمة وتكيّف لحظي</span> حلقة تحكّم واحدة.',
         featured_tag: "ميكانيك · تحكّم · تعلّم بالتعزيز",
         featured_h3: 'عتاد واحد، ثلاث طبقات تحكّم. <span class="accent">PID يضمن الأمان، الشبكة تحسّن الأداء، والتكيّف اللحظي يحافظ عليه.</span>',
-        featured_p: "مثبّت كاميرا بمحوَرَين بمحرّكات بلا فُرَش على حامل Storm32، يُستشعَر بوحدة MPU-6050 بتردّد 200 Hz ويُدار بالكامل على ESP32 بتكلفة ~380 درهم. مُعرَّف كنظام من الرتبة الثانية ضعيف التخميد (ωₙ ≈ 12.4 rad/s، ζ ≈ 0.18)، يقابِل PID متسلسلاً بسياسة PPO — ثمّ يدمجهما. تحت حِمل وتأخير مضافَين، يقع PID في دورة حدّية ذاتية عند 1.9 Hz؛ يُكدّس المُتحكِّم الذاتي PID مضبوطاً تلقائياً، وشبكة بَواقٍ PPO مُجمَّدة، وانحيازاً لحظياً آمناً ليمحو هذه الدورة (> 99%) ويواصل محوها مع انجراف العتاد.",
+        featured_p: "مثبّت كاميرا بمحوَرَين بمحرّكات بلا فُرَش على حامل Storm32، يُستشعَر بوحدة MPU-6050 بتردّد 200 Hz ويُدار بالكامل على ESP32 بتكلفة ~380 درهم. مُعرَّف كنظام من الرتبة الثانية ضعيف التخميد (ωₙ ≈ 12.4 rad/s، ζ ≈ 0.18)، يقابِل PID متسلسلاً بسياسة PPO — ثمّ يدمجهما. تحت حِمل وتأخير مضافَين، يقع PID في دورة حدّية ذاتية عند 3.2 Hz؛ يُكدّس المُتحكِّم الذاتي PID مضبوطاً تلقائياً، وشبكة بَواقٍ PPO مُجمَّدة، وانحيازاً لحظياً آمناً ليمحو هذه الدورة (> 99%) ويواصل محوها مع انجراف العتاد.",
 
         spec_payload_k: "الحمولة", spec_payload_v: "2 · انحراف + انحدار (Storm32)",
         spec_actuation_k: "التشغيل", spec_actuation_v: "2× BLDC · تحكّم بالعزم",
@@ -4874,7 +4918,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         card_02_h: "خطّ تدريب PPO + بيئة Gymnasium مخصّصة",
         card_02_p: "الجانب المحاكاتي من TIPE: المثبّت مُنمذَج كبيئة Gymnasium من الرتبة الثانية ومُدرَّب بـStable-Baselines3 PPO تحت تعشية المجال (~1 M خطوة)، إلى أن تتفوّق السياسة على PID المضبوط يدويًا في زمن الاستقرار.",
         card_03_h: "الدالة الواصفة وتحليل الدورة الحدّية",
-        card_03_p: "جوهر نظرية التحكّم: التنبّؤ بالتذبذب الذاتي عند 1.9 Hz للمثبّت انطلاقًا من اللاخطّية بطريقة الدالة الواصفة، ثم تأكيده على المنصّة عبر FFT.",
+        card_03_p: "جوهر نظرية التحكّم: التنبّؤ بالتذبذب الذاتي عند 3.2 Hz للمثبّت انطلاقًا من اللاخطّية بطريقة الدالة الواصفة، ثم تأكيده على المنصّة عبر FFT.",
         card_04_h: "Gimbal Lab — كود محاكاة وتدريب مفتوح",
         card_04_p: "تجميع البيئة وسكربتات التدريب وتصدير C++ في مستودع مفتوح صغير حتى تصبح مقارنة PID مقابل PPO قابلة لإعادة الإنتاج بالكامل. لا يزال قيد التنظيف.",
         card_05_h: "كشف العيوب لقطع الصبّ الرملي",
@@ -4900,7 +4944,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         notes_eyebrow: "مذكّرات وكتابات",
         notes_h2: "ملاحظات من الورشة، أحياناً بالفرنسية.",
         note_01: "من المحاكاة إلى الواقع للمثبّت: ما الذي صمد من المحاكاة، وما الذي لم يصمد.",
-        note_02: "متى يفوز PID المتسلسل ـ والدورة الحدّية عند 1.9 Hz التي تقول العكس.",
+        note_02: "متى يفوز PID المتسلسل ـ والدورة الحدّية عند 3.2 Hz التي تقول العكس.",
         note_03: "قَصّ PPO ولماذا ε = 0.2 قيمة افتراضية متينة بشكل مدهش.",
         note_04: "دليل مختصر لتعشية المجال لمثبّت بمحوَرَين.",
         note_05: "تعريف المثبّت كنظام من الرتبة الثانية — استجابات القفزة وباقٍ 2.3 % RMS.",
@@ -5039,62 +5083,12 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     });
 
     // ---------- DISTURBANCE SLIDER ----------
-    const distSlider = document.getElementById('dist-slider');
-    const distVal    = document.getElementById('dist-val');
-    const curvePid   = document.getElementById('curve-pid');
-    const curveRl    = document.getElementById('curve-rl');
-    const rmsPid     = document.getElementById('rms-pid');
-    const rmsRl      = document.getElementById('rms-rl');
-
-    // build smooth random-ish noise curves around a baseline,
-    // amplitude scales with disturbance
-    function buildCurve(seed, baseY, amp) {
-      const pts = [];
-      let phase = seed * 7.13;
-      for (let x = 0; x <= 320; x += 20) {
-        phase += 0.85;
-        const n = Math.sin(phase) * 0.6 + Math.sin(phase * 1.9 + seed) * 0.4;
-        const y = baseY + n * amp;
-        pts.push([x, Math.max(4, Math.min(88, y))]);
-      }
-      // build smooth path
-      let d = 'M' + pts[0][0] + ',' + pts[0][1].toFixed(2);
-      for (let i = 1; i < pts.length; i++) {
-        const [x1, y1] = pts[i-1];
-        const [x2, y2] = pts[i];
-        const cx = (x1 + x2) / 2;
-        d += ' Q' + cx.toFixed(1) + ',' + y1.toFixed(2) + ' ' + cx.toFixed(1) + ',' + ((y1+y2)/2).toFixed(2);
-        d += ' Q' + cx.toFixed(1) + ',' + y2.toFixed(2) + ' ' + x2 + ',' + y2.toFixed(2);
-      }
-      return d;
-    }
-
-    function updateDisturbance(v) {
-      // v is 0..100 → added loop delay 0..30 ms (test C)
-      const n = v / 100;
-      const ampPid = 6 + n * 40;     // PID degrades a lot with delay
-      const ampRl  = 4 + n * 12;     // RL stays tighter
-      curvePid.setAttribute('d', buildCurve(1, 46, ampPid));
-      curveRl.setAttribute('d',  buildCurve(2, 50, ampRl));
-
-      // physical-ish numbers
-      const ms = (n * 30).toFixed(0);
-      distVal.textContent = '+ ' + ms + ' ms';
-
-      // PID response time / RMS-ish blow-up vs delay; RL stays close to nominal
-      const pidT = (0.42 + n * 0.90).toFixed(2);   // seconds
-      const rlT  = (0.15 + n * 0.10).toFixed(2);
-      rmsPid.textContent = pidT + ' s';
-      rmsRl.textContent  = rlT  + ' s';
-
-      // wobble when high → simulates the 1.9 Hz limit cycle (PID only)
-      bpDisturbN = n;
-      updateBpStatus();
-    }
-    if (distSlider) {
-      distSlider.addEventListener('input', (e) => updateDisturbance(+e.target.value));
-      updateDisturbance(+distSlider.value);
-    }
+    // The faked noise curves were replaced by a real-time physics simulation;
+    // see the "real-time gimbal simulation" script just before </body>. It owns
+    // the delay slider (#dist-slider), both response curves (#curve-pid /
+    // #curve-rl), the blueprint motion and the live limit-cycle status. The
+    // compare figures (#rms-pid / #rms-rl) keep the nominal test-A step-response
+    // numbers already in the markup.
 
     // ---------- ANIMATED COUNTERS ----------
     const counters = document.querySelectorAll('.uptime span:not(.k):not(.bar):not(.fill)');
@@ -5559,8 +5553,8 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         html: `
           <p>Short answer — <strong>yes, but only in regimes where classical control's assumptions break down</strong>. The question is which regimes those are.</p>
           <p>PID is mathematically optimal for linear, time-invariant systems with a known model. Inside that domain, nothing beats it: it's the analytical solution, it ships with closed-form stability proofs, and a competent engineer tunes one in twenty minutes. If the gimbal had perfectly linear actuators, no friction, no delay, and a fixed inertia — PID would win every benchmark.</p>
-          <p>Reality breaks every one of those assumptions. <strong>Saturation</strong> turns the loop nonlinear above a torque ceiling. <strong>Dry friction</strong> introduces a discontinuity at zero velocity. <strong>Communication delay</strong> shrinks the achievable bandwidth. Each one individually is manageable; together they conspire to push the PID into a limit cycle — the bounded oscillation we measure on this rig at 1.9 Hz.</p>
-          <p>RL doesn't have to satisfy those assumptions because it never made them. It's just optimising a return; the policy is allowed to be arbitrarily nonlinear. So when the plant <em>itself</em> is nonlinear, RL has strictly more expressive power. On this bench: <strong>strong friction (μ = 0.08) + 50 ms delay</strong>, PID enters a 1.9 Hz cycle, the learned controller stays clean. Delay margin moves from 25 ms to &gt; 60 ms.</p>
+          <p>Reality breaks every one of those assumptions. <strong>Saturation</strong> turns the loop nonlinear above a torque ceiling. <strong>Dry friction</strong> introduces a discontinuity at zero velocity. <strong>Communication delay</strong> shrinks the achievable bandwidth. Each one individually is manageable; together they conspire to push the PID into a limit cycle — the bounded oscillation we measure on this rig at 3.2 Hz.</p>
+          <p>RL doesn't have to satisfy those assumptions because it never made them. It's just optimising a return; the policy is allowed to be arbitrarily nonlinear. So when the plant <em>itself</em> is nonlinear, RL has strictly more expressive power. On this bench: <strong>strong friction (μ = 0.08) + 50 ms delay</strong>, PID enters a 3.2 Hz cycle, the learned controller stays clean. Delay margin moves from 25 ms to &gt; 60 ms.</p>
           <p>The honest caveat: training costs hours of CPU and offers no Lyapunov certificate for the net alone. That's exactly why the final design keeps a self-tuned PID underneath — provable baseline stability — and only lets a frozen residual and a bounded bias improve on top. The key word is <em>safe</em>.</p>
         `
       },
@@ -5568,40 +5562,50 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         date: '2026 · 05',
         title: 'Sim-to-real for the gimbal: <span class="accent">what survived,</span> what didn\'t.',
         html: `
-          <p>Domain randomization on ωₙ, ζ, K, μ, and τ by ±15 % during training was the single biggest factor. Without it, the policy overfits to a specific simulated plant and falls apart on the real bench within seconds. With it, the policy survives a swap to a different motor pair with no retraining.</p>
-          <p>What didn't survive: the assumption that the IMU was noise-free in sim. The MPU-6050 on the bench has ~ 0.04°/√Hz angle noise that the simulator quietly ignored. Adding Gaussian noise (σ ≈ 0.002 rad) to the simulated state observation fixed the visible jitter.</p>
+          <p>Domain randomization on ωₙ, ζ, K, μ, and τ by ±15 % during training was the single biggest factor. Without it, the policy overfits to one simulated plant and falls apart on the real bench within seconds. With it, the same policy survives a swap to a different motor pair with no retraining.</p>
+          <p>What didn't survive: the assumption that the IMU was noise-free in sim. The MPU-6050 on the bench carries ~ 0.04°/√Hz angle noise the simulator quietly ignored. Adding Gaussian noise (σ ≈ 0.002 rad) to the simulated observation removed the visible jitter and stopped the policy from exploiting a cleanliness the real sensor never delivers.</p>
+          <p>The other gap was the actuator. In sim, commanded torque is instantaneous; the real Storm32 stage has a finite slew and the 200 Hz loop quantises every command. Clamping the policy's action <em>rate</em> and low-pass filtering it at the same ~ 16–20 Hz the derivative term uses closed most of what remained — and, as a bonus, killed the high-frequency chatter the raw policy produced near the setpoint.</p>
+          <p>But the thing that actually made transfer <em>safe</em> wasn't any of the above — it was never shipping the raw net. On the ESP32 the auto-tuned PID is the floor; the frozen residual (10→32→32→2, ≈ 1,474 parameters) and a bounded online bias only add a correction on top. A bad policy output can't fly the gimbal off — the worst case degrades to "the residual helped less than hoped," not "the rig went unstable." Sim-to-real risk becomes a performance question, not a safety one.</p>
         `
       },
       'ppo-clip': {
         date: '2026 · 03',
         title: 'PPO clipping and why <span class="accent">ε = 0.2</span> is a surprisingly robust default.',
         html: `
-          <p>The clipped surrogate objective L<sup>CLIP</sup> caps how far the new policy can drift from the old one within a single update. ε = 0.2 has been the published default since 2017 (Schulman et al.) and it works here too — tried 0.1, 0.15, 0.25, 0.3; only 0.1 made training noticeably slower, the rest were equivalent within run-to-run variance.</p>
-          <p>The non-obvious bit: ε interacts with the learning rate. Lower ε with the standard 3e-4 just slows convergence without improving final reward. The default is conservative because it has to work across many environments.</p>
+          <p>The clipped surrogate objective L<sup>CLIP</sup> caps how far the new policy can drift from the old one in a single update. ε = 0.2 has been the published default since 2017 (Schulman et al.) and it held up here — I tried 0.1, 0.15, 0.25, 0.3; only 0.1 made training noticeably slower, the rest were equivalent within run-to-run variance.</p>
+          <p>The non-obvious bit: ε interacts with the learning rate. Lower ε with the standard 3e-4 just slows convergence without improving the final reward. The default is conservative precisely because it has to work across many environments without per-task tuning.</p>
+          <p>What ε actually buys on this problem: the gimbal reward is dense and shaped, so a single overconfident update can collapse exploration and strand the policy in a bad basin. Clipping keeps each step inside a trust region, so training is roughly monotone instead of boom-and-bust. Over the 2 M-step run the clipped objective reached ≈ +588 return against −132 for the untuned baseline — much of that gap is simply <em>not</em> blowing up mid-training.</p>
+          <p>And the failure mode ε does <em>not</em> fix: it bounds policy drift, not the standard-deviation collapse that produces micro-chatter once the policy sits on target. A Gaussian policy keeps injecting exploration noise it should have annealed away. That needed separate action-smoothing (CAPS-style regularisation, Mysore et al. 2021) and a deterministic action at deployment. ε is necessary here, not sufficient.</p>
         `
       },
       'domain-rand': {
         date: '2026 · 01',
         title: 'A short guide to <span class="accent">domain randomization</span> for a 2-axis gimbal.',
         html: `
-          <p>Randomize the physical parameters (ωₙ, ζ, K, μ, delay) on each episode. Don't randomize the reward function — that confuses the optimiser. Don't randomize the observation/action spaces — that breaks the network.</p>
-          <p>A ±15 % range around the nominal is usually enough. Wider and the policy becomes too cautious; narrower and you don't bridge the sim-to-real gap. The exact range is empirical: too narrow, the real bench breaks the policy; too wide, the policy underperforms even on the nominal sim.</p>
+          <p>Randomise the physical parameters (ωₙ, ζ, K, μ, delay) on each episode. Don't randomise the reward function — that confuses the optimiser about what "good" means. Don't randomise the observation or action spaces — that breaks the network's input/output assumptions.</p>
+          <p>A ±15 % range around nominal is usually enough. Wider and the policy turns over-cautious; narrower and you don't bridge the sim-to-real gap. The exact figure is empirical: too narrow and the real bench breaks the policy, too wide and it underperforms even on the nominal sim.</p>
+          <p>The distribution matters less than people expect — uniform over ±15 % worked as well as a truncated normal. What mattered was randomising <em>per episode</em>, not per step: the policy then experiences a single consistent plant for the whole episode and learns to infer it from the first handful of observations. Per-step randomisation just looks like noise, and the policy averages it straight out.</p>
+          <p>A useful diagnostic: if a policy trained with randomisation still fails on the bench, the gap is almost always a parameter you forgot to randomise. Here it was the loop delay τ — early policies were brittle to it until τ joined the randomisation set, after which the delay margin generalised and the bench stopped surprising me.</p>
         `
       },
       'identification': {
         date: '2025 · 11',
         title: 'Identifying a gimbal as a <span class="accent">2ⁿᵈ order plant.</span>',
         html: `
-          <p>Send a 0.3-amplitude torque step via Storm32, log θ(t) at 200 Hz, and read off the damping from the <strong>logarithmic decrement</strong> between successive peaks; the damped period gives ωₙ and the settled value gives K. Result: ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18, K ≈ 1.6, at 2.3 % RMS against the measurement.</p>
-          <p>Why not a 3rd-order model? Parsimony: a 3rd order fits at 2.1 % RMS instead of 2.3 % but with one extra parameter. The improvement isn't statistically meaningful, so we don't pay for it.</p>
+          <p>Send a 0.3 rad torque step via Storm32, log θ(t) at 200 Hz, and read the damping from the <strong>logarithmic decrement</strong> between successive peaks; the damped period gives ωₙ and the settled value gives K. Pitch comes out at ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18, K ≈ 1.6 (2.3 % RMS against the measurement); roll is close but not identical at ωₙ ≈ 11.9 rad/s, ζ ≈ 0.20, K ≈ 1.55 — which is exactly why each axis gets its own auto-tuned gains rather than a shared set.</p>
+          <p>Why not a 3rd-order model? Parsimony. A 3rd order fits at 2.1 % RMS instead of 2.3 %, but for one extra parameter — the improvement isn't statistically meaningful, so we don't pay for it.</p>
+          <p>Two practical traps. The decrement is sensitive to which peaks you pick, so average it over four or five peaks instead of two. And the step has to stay small enough to avoid saturation: push past ~ 0.4 rad and the actuator clips, the response is no longer linear, and the "2ⁿᵈ-order" fit quietly degrades because you're now identifying a different system.</p>
+          <p>The model is only trusted because it predicts two independent things: the open-loop step response <em>and</em> the delay-induced limit-cycle frequency (the ≈ 3.2 Hz phase-crossover) later measured by FFT on the bench. A model that nailed the step but mispredicted the cycle would be a red flag that the linear fit is hiding something — agreement on both is what earns it a place in the controller design.</p>
         `
       },
       'atelier': {
         date: '2025 · 09',
         title: 'Le carnet d\'atelier : pourquoi j\'écris encore <span class="accent">mes notes à la main.</span>',
         html: `
-          <p>Le notebook papier oblige à structurer la pensée avant d'écrire — pas de copier-coller, pas de récupération facile. Pour les sessions d'identification où chaque essai prend 3 minutes, la lenteur est une bonne chose.</p>
-          <p>Le code et les datasets vivent évidemment dans git. Mais le raisonnement initial, les hypothèses rejetées, les schémas griffonnés — ça vit dans un carnet relié à l'ancienne. C'est un système, pas une nostalgie.</p>
+          <p>Le carnet papier oblige à structurer la pensée avant d'écrire — pas de copier-coller, pas de récupération facile. Pour les sessions d'identification où chaque essai prend trois minutes, cette lenteur est une bonne chose : elle laisse le temps de regarder la courbe avant de la classer.</p>
+          <p>Le code et les jeux de données vivent évidemment dans git. Mais le raisonnement initial, les hypothèses rejetées, les schémas griffonnés — ça vit dans un carnet relié à l'ancienne. C'est un système, pas de la nostalgie.</p>
+          <p>Un exemple concret : la dérivation par fonction descriptive du cycle à 3,2 Hz a commencé par un croquis du diagramme de Nyquist avec le lieu −1/N(A) tracé à la main. Le faire sur papier m'a forcé à poser correctement la géométrie du croisement de phase <em>avant</em> d'écrire le code de confirmation par FFT — l'erreur aurait été invisible directement dans le notebook Python.</p>
+          <p>La règle que je suis : le carnet contient le « pourquoi » (les décisions, les impasses, la forme d'un argument) ; git contient le « quoi » (le code, les données, les résultats). Les mélanger dégrade les deux — un historique de commits est un mauvais endroit pour un raisonnement, et un carnet est un mauvais endroit pour des artefacts reproductibles.</p>
         `
       }
     };
@@ -5636,7 +5640,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       { when: 'apr 2026', proj: 'Gimbal · TIPE', accent: true, body: 'Exported the frozen PPO residual to plain C++ — ~250 µs per forward pass on the ESP32, baked into flash. The auto-tuned PID underneath stays the safety floor.', meta: 'export · c++' },
       { when: 'apr 2026', proj: 'Gimbal · TIPE', accent: true, body: 'Domain randomization range widened from ±10 % to ±15 % on ωₙ, ζ, K. Sim-to-real transfer stops falling apart when I swap motors.', meta: 'sim · dr' },
       { when: 'mar 2026', proj: 'Gimbal · TIPE', accent: true, body: 'PPO agent in the Gymnasium env finally beats the hand-tuned PID on settling time (~1 M steps, a few hours on CPU). First run I forgot domain randomization and the policy overfit the sim.', meta: 'train · ppo' },
-      { when: 'feb 2026', proj: 'Gimbal · TIPE', accent: true, body: 'Found the 1.9 Hz self-sustained limit cycle: add loop delay and the PID overshoots, re-corrects, oscillates. An FFT on the pitch error matches the describing-function prediction.', meta: 'analysis' },
+      { when: 'feb 2026', proj: 'Gimbal · TIPE', accent: true, body: 'Found the 3.2 Hz self-sustained limit cycle: add loop delay and the PID overshoots, re-corrects, oscillates. An FFT on the pitch error matches the describing-function prediction.', meta: 'analysis' },
       { when: 'jan 2026', proj: 'Gimbal · TIPE', accent: true, body: 'Plant identification: 0.3 rad torque steps logged at 200 Hz, log-decrement on the peaks gives ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18. 2ⁿᵈ-order fit at 2.3 % RMS.', meta: 'identify' },
       { when: 'dec 2025', proj: 'Gimbal · TIPE', accent: true, body: 'First clean cascade-PID baseline on the bench. Good enough in nominal conditions — which is exactly what made the limit cycle later so surprising.', meta: 'pid · baseline' },
       { when: 'nov 2025', proj: 'Gimbal · TIPE', accent: true, body: 'Built the bench: ESP32 + Storm32 + MPU-6050, ~380 MAD. Spent a day chasing I²C noise that turned out to be a missing pull-up. Noted, never again.', meta: 'bench · setup' },
@@ -5922,6 +5926,15 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     if (submitBtn)  submitBtn.addEventListener('click', () => {
       if (submitCard.classList.contains('is-sent')) toast('Request sent · expect a reply', 'success');
     });
+
+    // expose note/log data + openers so the global search (before </body>) can
+    // index full note bodies and jump straight to a note or the build log
+    window.MeyanaSearch = {
+      notes: NOTES,
+      feed: FEED,
+      openNote: openNote,
+      openFeed: function () { const b = document.getElementById('open-fullfeed'); if (b) b.click(); }
+    };
   })();
   </script>
 
@@ -6907,5 +6920,419 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     load(); checkAdmin();
   } catch(e){ /* never break the page */ }
 })();
+</script>
+
+<!-- ===== real-time gimbal simulation (replaces the faked curves) ===== -->
+<script>
+/* =========================================================
+   Meyana — real-time gimbal simulation (replaces the faked curves)
+   ---------------------------------------------------------
+   Integrates the identified 2nd-order plant in real time and lets the
+   delay slider drive a genuine, delay-induced limit cycle. The cycle sits
+   at the loop's -180 deg phase-crossover frequency (~3.2 Hz near the
+   degraded test point) — NOT wn/2pi — and shifts as you change the delay.
+   Hooks the existing ids/classes so it is drop-in:
+     #dist-slider #dist-val #curve-pid #curve-rl .featured-art .bp-pitch #bp-status-text
+   ========================================================= */
+(function () {
+  'use strict';
+  var art = document.querySelector('.featured-art');
+  var slider = document.getElementById('dist-slider');
+  var distVal = document.getElementById('dist-val');
+  var curvePid = document.getElementById('curve-pid');
+  var curveRl = document.getElementById('curve-rl');
+  var bpPitch = document.querySelector('.bp-pitch');
+  var statusText = document.getElementById('bp-status-text');
+  if (!art || !slider || !curvePid || !curveRl) return;
+
+  // ---- identified plant (TIPE, pitch axis) -------------------------------
+  var WN = 12.4, ZETA = 0.18, K = 1.6;     // wn rad/s, damping, gain
+  var DT = 0.005;                           // 200 Hz control loop
+  var DELAY_MAX = 0.060;                    // slider 100% -> +60 ms loop delay
+  var WINDOW = 6.0;                         // seconds shown in the strip chart
+  var NBUF = Math.round(WINDOW / DT);
+  var SCALE = 1.0;                          // rad mapped to half-height of plot
+
+  function deriv(th, w, u) {
+    return [w, K * WN * WN * u - 2 * ZETA * WN * w - WN * WN * th];
+  }
+  function rk4(s, u, dt) {
+    var a1 = deriv(s.th, s.w, u);
+    var a2 = deriv(s.th + 0.5 * dt * a1[0], s.w + 0.5 * dt * a1[1], u);
+    var a3 = deriv(s.th + 0.5 * dt * a2[0], s.w + 0.5 * dt * a2[1], u);
+    var a4 = deriv(s.th + dt * a3[0], s.w + dt * a3[1], u);
+    s.th += dt / 6 * (a1[0] + 2 * a2[0] + 2 * a3[0] + a4[0]);
+    s.w += dt / 6 * (a1[1] + 2 * a2[1] + 2 * a3[1] + a4[1]);
+  }
+
+  // PID with derivative-on-measurement low-pass + conditional anti-windup.
+  // Optional Smith-style predictor: an on-board plant model lets the
+  // controller act on a *predicted* undelayed angle, giving it the large
+  // delay margin a delay-trained policy effectively learns.
+  function makeCtrl(g) {
+    var integ = 0, prevMeas = 0, dF = 0, started = false;
+    var tau = 1 / (2 * Math.PI * g.fc);
+    var model = { th: 0, w: 0 };
+    var mbuf = [], mbi = 0, mlen = 0;
+    return {
+      setDelay: function (steps) {
+        mlen = Math.max(0, steps);
+        mbuf = new Array(Math.max(1, mlen)).fill(0); mbi = 0;
+      },
+      step: function (measDelayed, ref, dt) {
+        var meas = measDelayed;
+        if (g.smith) {
+          var mDelayed = mlen ? mbuf[mbi] : model.th;
+          meas = measDelayed + (model.th - mDelayed);   // predicted "now"
+        }
+        var e = ref - meas;
+        if (!started) { prevMeas = meas; started = true; }
+        var dRaw = (meas - prevMeas) / dt;
+        dF += (dt / (tau + dt)) * (dRaw - dF);
+        prevMeas = meas;
+        var u = g.Kp * e + g.Ki * integ - g.Kd * dF;
+        var us = u < -1 ? -1 : (u > 1 ? 1 : u);
+        if (us === u) integ += e * dt;             // anti-windup
+        if (g.smith) {
+          rk4(model, us, dt);
+          if (mlen) { mbuf[mbi] = model.th; mbi = (mbi + 1) % mlen; }
+        }
+        return us;
+      }
+    };
+  }
+
+  var GP = { Kp: 3.0, Ki: 23.5, Kd: 0.211, fc: 18 };               // baseline PID
+  var GR = { Kp: 3.0, Ki: 20.0, Kd: 0.18, fc: 18, smith: true };   // delay-aware "RL"
+
+  var pid = makeCtrl(GP), rl = makeCtrl(GR);
+  var sPid = { th: 0, w: 0 }, sRl = { th: 0, w: 0 };
+  var bufPid = new Float64Array(NBUF), bufRl = new Float64Array(NBUF);
+  var head = 0, filled = 0;
+  var delaySteps = 0;
+  var dPid = new Array(1).fill(0), dRl = new Array(1).fill(0), di = 0, dlen = 0;
+  var rng = 0x2545F491, stepN = 0;
+  function rand() { rng = (rng * 1103515245 + 12345) & 0x7fffffff; return rng / 0x7fffffff - 0.5; }
+
+  function setDelayFromSlider() {
+    var n = (+slider.value) / 100;
+    var sec = n * DELAY_MAX;
+    delaySteps = Math.round(sec / DT);
+    dlen = Math.max(0, delaySteps);
+    dPid = new Array(Math.max(1, dlen)).fill(0);
+    dRl = new Array(Math.max(1, dlen)).fill(0); di = 0;
+    pid.setDelay(dlen); rl.setDelay(dlen);
+    if (distVal) distVal.textContent = '+ ' + Math.round(sec * 1000) + ' ms';
+  }
+
+  function stepOnce() {
+    var kick = (stepN % Math.round(0.7 / DT) === 0) ? 0.03 : 0;
+    var noise = 0.0012 * rand();
+    // PID loop (acts on delayed measurement)
+    var mP = dlen ? dPid[di] : sPid.th;
+    var uP = pid.step(mP, 0, DT);
+    rk4(sPid, uP, DT); sPid.w += noise + kick;
+    // RL loop (same exogenous disturbance, fair comparison)
+    var mR = dlen ? dRl[di] : sRl.th;
+    var uR = rl.step(mR, 0, DT);
+    rk4(sRl, uR, DT); sRl.w += noise + kick;
+    if (dlen) { dPid[di] = sPid.th; dRl[di] = sRl.th; di = (di + 1) % dlen; }
+    bufPid[head] = sPid.th; bufRl[head] = sRl.th;
+    head = (head + 1) % NBUF; if (filled < NBUF) filled++;
+    stepN++;
+  }
+
+  function pathFor(buf) {
+    var M = 161, d = '';
+    for (var k = 0; k < M; k++) {
+      var idx = Math.round(k / (M - 1) * (NBUF - 1));
+      var s = buf[(head + idx) % NBUF];           // oldest -> newest
+      var y = 46 - Math.max(-1, Math.min(1, s / SCALE)) * 42;
+      var x = (k / (M - 1)) * 320;
+      d += (k ? ' L' : 'M') + x.toFixed(1) + ',' + y.toFixed(2);
+    }
+    return d;
+  }
+
+  // dominant frequency of the PID trace (rising zero-crossings about mean,
+  // last ~2 s) — only meaningful once an oscillation dominates the noise
+  function pidStats() {
+    var n = Math.min(filled, Math.round(2.0 / DT));
+    var mean = 0, i, v, peak = 0;
+    for (i = 0; i < n; i++) { v = bufPid[(head - 1 - i + NBUF) % NBUF]; mean += v; }
+    mean /= (n || 1);
+    var cross = 0, prev = 0;
+    for (i = n - 1; i >= 0; i--) {
+      v = bufPid[(head - 1 - i + NBUF) % NBUF] - mean;
+      if (Math.abs(v) > peak) peak = Math.abs(v);
+      if (prev <= 0 && v > 0 && i < n - 1) cross++;
+      prev = v;
+    }
+    var secs = n * DT;
+    return { amp: peak, freq: secs ? cross / secs : 0 };
+  }
+
+  function render() {
+    curvePid.setAttribute('d', pathFor(bufPid));
+    curveRl.setAttribute('d', pathFor(bufRl));
+    var mode = art.dataset.mode || 'pid';
+    var th = (mode === 'rl') ? sRl.th : sPid.th;
+    if (bpPitch) {
+      var deg = Math.max(-24, Math.min(24, th * 18));
+      bpPitch.style.transform = 'rotate(' + deg.toFixed(2) + 'deg)';
+    }
+    var ms = Math.round((+slider.value) / 100 * DELAY_MAX * 1000);
+    var st = pidStats();
+    var cycling = (mode === 'pid' && st.amp > 0.05);
+    art.classList.toggle('is-cycling', cycling);
+    if (statusText) {
+      if (mode === 'pid') {
+        statusText.textContent = cycling
+          ? ('PID · ' + st.freq.toFixed(1) + ' Hz limit cycle · +' + ms + ' ms')
+          : (ms > 0 ? ('PID · holding · +' + ms + ' ms') : 'PID · stable · nominal');
+      } else {
+        statusText.textContent = ms > 0 ? ('RL · locked · +' + ms + ' ms') : 'RL · locked · nominal';
+      }
+    }
+  }
+
+  // ---- run loop ----------------------------------------------------------
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var visible = true, running = false, last = 0, acc = 0;
+
+  function frame(now) {
+    if (!running) return;
+    if (!last) last = now;
+    var dt = (now - last) / 1000; last = now;
+    if (dt > 0.1) dt = 0.1;                  // tab was backgrounded — don't spiral
+    acc += dt;
+    var steps = 0;
+    while (acc >= DT && steps < 60) { stepOnce(); acc -= DT; steps++; }
+    render();
+    requestAnimationFrame(frame);
+  }
+  function start() { if (running || reduce || !visible) return; running = true; last = 0; requestAnimationFrame(frame); }
+  function stop() { running = false; }
+
+  // reduced-motion: one settled snapshot, refreshed on interaction
+  function snapshot() {
+    sPid = { th: 0, w: 0 }; sRl = { th: 0, w: 0 };
+    head = 0; filled = 0; stepN = 0;
+    bufPid.fill(0); bufRl.fill(0);
+    var total = Math.round((WINDOW + 3) / DT);
+    for (var i = 0; i < total; i++) stepOnce();
+    render();
+  }
+
+  setDelayFromSlider();
+  slider.addEventListener('input', function () {
+    setDelayFromSlider();
+    if (reduce) snapshot();
+  });
+
+  // re-snapshot on mode/view change when animation is off
+  if (reduce && window.MutationObserver) {
+    new MutationObserver(function () { snapshot(); })
+      .observe(art, { attributes: true, attributeFilter: ['data-mode', 'data-view'] });
+  }
+
+  // only burn cycles while the panel is on screen
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (es) {
+      visible = es[0].isIntersecting;
+      if (visible) start(); else stop();
+    }, { threshold: 0.05 }).observe(art);
+  } else { visible = true; start(); }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stop(); else if (visible) start();
+  });
+
+  if (reduce) snapshot(); else start();
+})();
+
+</script>
+
+<!-- ===== global search ===== -->
+<script>
+/* =========================================================
+   Meyana — global search (dependency-free)
+   Indexes sections, projects (static + Supabase-rendered), full note
+   bodies, and the build log; jumps straight to the match.
+   ========================================================= */
+(function () {
+  'use strict';
+  var openBtn  = document.getElementById('search-open');
+  var overlay  = document.getElementById('search-overlay');
+  var input    = document.getElementById('search-input');
+  var closeBtn = document.getElementById('search-close');
+  var results  = document.getElementById('search-results');
+  var countEl  = document.getElementById('search-count');
+  if (!openBtn || !overlay || !input || !results) return;
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function stripHtml(h) {
+    var d = document.createElement('div');
+    d.innerHTML = h || '';
+    return (d.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  // ---------- build index (rebuilt on each open to catch dynamic cards) ----------
+  var index = [];
+  function jumpTo(href) {
+    closeSearch();
+    if (href && href.charAt(0) === '#') {
+      var el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  function flash(el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('search-flash');
+    setTimeout(function () { el.classList.remove('search-flash'); }, 1600);
+  }
+  function buildIndex() {
+    index = [];
+    document.querySelectorAll('#nav a[data-nav]').forEach(function (a) {
+      var label = a.textContent.trim();
+      var href = a.getAttribute('href');
+      index.push({ type: 'section', title: label, text: label, snip: '', run: function () { jumpTo(href); } });
+    });
+    document.querySelectorAll('#projects .grid .card').forEach(function (card) {
+      var h = (card.querySelector('h4') ? card.querySelector('h4').textContent : '').trim();
+      var p = (card.querySelector('p') ? card.querySelector('p').textContent : '').trim();
+      var tags = Array.prototype.map.call(card.querySelectorAll('.tag'), function (t) { return t.textContent.trim(); }).join(' ');
+      if (!h && !p) return;
+      index.push({ type: 'project', title: h || 'Project', text: h + ' ' + p + ' ' + tags, snip: p, run: function () { jumpTo('#projects'); flash(card); } });
+    });
+    var MS = window.MeyanaSearch;
+    if (MS && MS.notes) {
+      Object.keys(MS.notes).forEach(function (key) {
+        var n = MS.notes[key];
+        var title = stripHtml(n.title), body = stripHtml(n.html);
+        index.push({ type: 'note', title: title, text: title + ' ' + body, snip: body, run: function () { closeSearch(); MS.openNote(key); } });
+      });
+    } else {
+      document.querySelectorAll('a.note[data-note]').forEach(function (c) {
+        var t = (c.querySelector('.title') ? c.querySelector('.title').textContent : c.textContent).trim();
+        index.push({ type: 'note', title: t, text: t, snip: '', run: function () { closeSearch(); c.click(); } });
+      });
+    }
+    if (MS && MS.feed) {
+      MS.feed.forEach(function (f) {
+        var t = (f.proj || 'Log') + ' · ' + (f.when || '');
+        index.push({ type: 'log', title: t, text: t + ' ' + (f.body || ''), snip: f.body || '', run: function () { MS.openFeed(); } });
+      });
+    } else {
+      document.querySelectorAll('#updates .buildlog-entry').forEach(function (en) {
+        var txt = en.textContent.replace(/\s+/g, ' ').trim();
+        index.push({ type: 'log', title: txt.slice(0, 46), text: txt, snip: txt, run: function () { jumpTo('#updates'); } });
+      });
+    }
+  }
+
+  // ---------- scoring + rendering ----------
+  function score(e, q, toks) {
+    var t = e.text.toLowerCase(), title = e.title.toLowerCase();
+    if (title.indexOf(q) >= 0) return 4;
+    if (t.indexOf(q) >= 0) return 2;
+    if (toks.length > 1 && toks.every(function (tk) { return t.indexOf(tk) >= 0; })) return 1;
+    return 0;
+  }
+  function titleHtml(s, q) {
+    var i = s.toLowerCase().indexOf(q);
+    if (i < 0 || !q) return escapeHtml(s);
+    return escapeHtml(s.slice(0, i)) + '<mark>' + escapeHtml(s.slice(i, i + q.length)) + '</mark>' + escapeHtml(s.slice(i + q.length));
+  }
+  function snippetHtml(s, q) {
+    var lo = s.toLowerCase(), i = lo.indexOf(q);
+    var start = 0, str = s;
+    if (i >= 0) { start = Math.max(0, i - 48); }
+    str = s.slice(start, start + 170);
+    var out = escapeHtml(str);
+    if (q) { out = out.replace(new RegExp(escapeRe(escapeHtml(q)), 'ig'), function (m) { return '<mark>' + m + '</mark>'; }); }
+    return (start > 0 ? '… ' : '') + out + (start + 170 < s.length ? ' …' : '');
+  }
+
+  var current = [], active = -1;
+  function render() {
+    var q = input.value.trim().toLowerCase();
+    results.innerHTML = '';
+    active = -1;
+    if (!q) {
+      current = []; countEl.textContent = '';
+      results.innerHTML = '<div class="search-empty">Search projects, notes, and the build log.</div>';
+      return;
+    }
+    var toks = q.split(/\s+/).filter(Boolean);
+    current = index.map(function (e) { return { e: e, s: score(e, q, toks) }; })
+      .filter(function (x) { return x.s > 0; })
+      .sort(function (a, b) { return b.s - a.s || a.e.title.length - b.e.title.length; })
+      .slice(0, 12).map(function (x) { return x.e; });
+    if (!current.length) {
+      countEl.textContent = '0 results';
+      results.innerHTML = '<div class="search-empty">No matches for &ldquo;' + escapeHtml(input.value.trim()) + '&rdquo;.</div>';
+      return;
+    }
+    countEl.textContent = current.length + (current.length === 1 ? ' result' : ' results');
+    current.forEach(function (e, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'search-result'; btn.setAttribute('data-i', i);
+      var html = '<span class="sr-top"><span class="sr-type">' + e.type + '</span><span class="sr-title">' + titleHtml(e.title, q) + '</span></span>';
+      if (e.snip) html += '<span class="sr-snip">' + snippetHtml(e.snip, q) + '</span>';
+      btn.innerHTML = html;
+      btn.addEventListener('click', function () { e.run(); });
+      btn.addEventListener('mousemove', function () { setActive(i); });
+      results.appendChild(btn);
+    });
+  }
+  function setActive(i) {
+    var nodes = results.querySelectorAll('.search-result');
+    if (!nodes.length) return;
+    active = (i + nodes.length) % nodes.length;
+    nodes.forEach(function (n, k) { n.classList.toggle('is-active', k === active); });
+    nodes[active].scrollIntoView({ block: 'nearest' });
+  }
+
+  // ---------- open / close ----------
+  function openSearch() {
+    buildIndex();
+    overlay.classList.add('is-open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    input.value = ''; render();
+    setTimeout(function () { input.focus(); }, 30);
+  }
+  function closeSearch() {
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  openBtn.addEventListener('click', openSearch);
+  if (closeBtn) closeBtn.addEventListener('click', closeSearch);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSearch(); });
+  input.addEventListener('input', render);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(active + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(active - 1); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (active >= 0 && current[active]) current[active].run(); else if (current[0]) current[0].run(); }
+    else if (e.key === 'Escape') { closeSearch(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && !overlay.classList.contains('is-open')) {
+      var tag = (document.activeElement && document.activeElement.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
+      e.preventDefault(); openSearch();
+    } else if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
+      closeSearch();
+    }
+  });
+})();
+
 </script>
 </body></html>
