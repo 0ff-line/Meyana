@@ -3809,8 +3809,8 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
 
           <article class="card" data-tags="control ai hardware" data-open-study="1" style="cursor:pointer;">
             <div class="row1"><span class="num">№ 01</span><span>2025 — 2026 · TIPE</span></div>
-            <h4><span class="accent">2-axis gimbal</span> — PID vs. a reinforcement-learning controller</h4>
-            <p>My TIPE, and the featured study. A 2-axis brushless gimbal on Storm32 + ESP32 + MPU-6050 at 200 Hz: a hand-tuned cascade PID compared against a PPO policy, then fused into one controller with the PID as a safety floor. Click to read the full study.</p>
+            <h4 data-edit-key="card01-title"><span class="accent">2-axis gimbal</span> — PID vs. a reinforcement-learning controller</h4>
+            <p data-edit-key="card01-desc">My TIPE, and the featured study. A 2-axis brushless gimbal on Storm32 + ESP32 + MPU-6050 at 200 Hz: a hand-tuned cascade PID compared against a PPO policy, then fused into one controller with the PID as a safety floor. Click to read the full study.</p>
             <div class="tags">
               <span class="tag is-accent">TIPE</span><span class="tag">esp32</span><span class="tag">ppo</span><span class="tag">storm32</span>
             </div>
@@ -5030,6 +5030,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       });
 
       try { localStorage.setItem('meyana:lang', lang); } catch (e) {}
+      if (window.MeyanaEdit && window.MeyanaEdit.apply) window.MeyanaEdit.apply(lang);
     }
 
     document.querySelectorAll('.langs button').forEach(b => {
@@ -5615,6 +5616,11 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       noteEyebrow.textContent = data.date + ' · bench note';
       noteTitle.innerHTML = data.title;
       noteBody.innerHTML = data.html;
+      if (window.MeyanaEdit) {
+        noteOverlay.dataset.noteKey = key;
+        window.MeyanaEdit.bindContainer(noteTitle, window.MeyanaEdit.noteTitleKey(key));
+        window.MeyanaEdit.bindContainer(noteBody, window.MeyanaEdit.noteBodyKey(key));
+      }
       noteOverlay.classList.add('is-open');
       noteOverlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
@@ -5655,6 +5661,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
           <div class="meta-r">${e.meta}</div>
         </div>
       `).join('');
+      if (window.MeyanaEdit) window.MeyanaEdit.bindContainer(feedList, window.MeyanaEdit.feedKey());
     }
     function openFeed() {
       renderFeed();
@@ -7831,6 +7838,191 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       closeSearch();
     }
   });
+})();
+
+</script>
+<script>
+/* ===== Meyana · inline page editor =====================================
+   Owner signs in -> a floating "Edit page" button appears. In edit mode any
+   text on the page (hero, "on the bench", section intros, the project cards,
+   and -- via hooks -- the notes and the build log) becomes directly editable;
+   changes autosave to the content_overrides table and are re-applied for every
+   visitor on load. Main-page text is stored per language; notes / build log are
+   stored once (they are not translated). No "import" step needed to edit text.
+   Wrapped so any missing table / offline state silently leaves the page as-is. */
+(function () {
+  try {
+    var M = window.__MEYANA || {};
+    var sb = M.sb || null;
+    var ADMIN_EMAIL = 'us3roffline@gmail.com';
+    var overrides = {};            // key -> html
+    var isOwner = false, editMode = false;
+    var btn = null, bar = null, toastEl = null;
+
+    function curLang() { return document.documentElement.lang || 'en'; }
+
+    // ---- which page elements are directly editable ----
+    function excluded(el) {
+      return el.matches('a, button') || el.matches('[data-i18n-attr]') ||
+        el.closest('#search-overlay') || el.closest('#admin-add') || el.closest('.proj-admin') || el.closest('.langs');
+    }
+    function mainEditables() {
+      var out = [];
+      Array.prototype.forEach.call(document.querySelectorAll('[data-i18n], [data-edit-key]'), function (el) {
+        if (!excluded(el)) out.push(el);
+      });
+      return out;
+    }
+    function keyFor(el) {
+      var L = curLang();
+      if (el.hasAttribute('data-edit-key')) return L + '::ek::' + el.getAttribute('data-edit-key');
+      return L + '::i18n::' + el.getAttribute('data-i18n');
+    }
+    function getOverride(k) { return (overrides[k] != null) ? overrides[k] : null; }
+
+    // ---- apply overrides to main content for the current language ----
+    function applyMain() {
+      mainEditables().forEach(function (el) {
+        var k = keyFor(el);
+        if (overrides[k] != null && el.innerHTML !== overrides[k] && document.activeElement !== el) el.innerHTML = overrides[k];
+      });
+      if (editMode) decorate(true);
+    }
+
+    // ---- fetch / save ----
+    function fetchOverrides(cb) {
+      if (!sb) { if (cb) cb(); return; }
+      Promise.resolve(sb.from('content_overrides').select('key, html')).then(function (res) {
+        if (res && res.data) res.data.forEach(function (r) { overrides[r.key] = r.html; });
+        if (cb) cb();
+      }).catch(function () { if (cb) cb(); });
+    }
+    function saveKey(key, html) {
+      overrides[key] = html;
+      if (!sb) { toast('not signed in', true); return; }
+      Promise.resolve(sb.from('content_overrides').upsert({ key: key, html: html, updated_at: new Date().toISOString() }).select()).then(function (res) {
+        if (res && res.error) throw res.error;
+        toast('saved');
+      }).catch(function (err) {
+        var m = (err && err.message) ? err.message : '';
+        toast(/content_overrides|relation|does not exist/i.test(m) ? 'run the SQL first' : 'save failed', true);
+      });
+    }
+
+    // ---- make an element editable ----
+    function makeEditable(el, getKey) {
+      el.setAttribute('contenteditable', 'true');
+      el.classList.add('m-editing');
+      if (getKey) el.__getKey = getKey;
+      else if (!el.__getKey) el.__getKey = function () { return keyFor(el); };
+      if (el.__medit) return;
+      el.__medit = true;
+      el.__last = el.innerHTML;
+      el.addEventListener('mousedown', function (e) { if (editMode) e.stopPropagation(); }, true);
+      el.addEventListener('click', function (e) { if (editMode) e.stopPropagation(); }, true);
+      el.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); el.blur(); }
+        if (e.key === 'Enter' && !e.shiftKey && /^H[1-6]$/.test(el.tagName)) { e.preventDefault(); el.blur(); }
+      });
+      el.addEventListener('blur', function () {
+        var html = el.innerHTML;
+        if (html !== el.__last) { el.__last = html; saveKey(el.__getKey(), html); }
+      });
+    }
+    function unmakeEditable(el) { el.setAttribute('contenteditable', 'false'); el.classList.remove('m-editing'); }
+    function decorate(on) { mainEditables().forEach(function (el) { if (on) makeEditable(el); else unmakeEditable(el); }); }
+
+    // ---- notes / build log (rendered from JS, bound when opened) ----
+    function bindContainer(el, key) {
+      if (!el) return;
+      if (overrides[key] != null && el.innerHTML !== overrides[key]) el.innerHTML = overrides[key];
+      if (editMode) { makeEditable(el, function () { return key; }); el.__last = el.innerHTML; }
+    }
+    function rebindOpen() {
+      var nb = document.getElementById('note-body'), nt = document.getElementById('note-title');
+      var no = document.getElementById('note-overlay'), fl = document.getElementById('feed-list');
+      if (no && no.classList.contains('is-open') && no.dataset.noteKey) {
+        if (nb) { makeEditable(nb, function () { return 'note::' + no.dataset.noteKey + '::body'; }); nb.__last = nb.innerHTML; }
+        if (nt) { makeEditable(nt, function () { return 'note::' + no.dataset.noteKey + '::title'; }); nt.__last = nt.innerHTML; }
+      }
+      var fo = document.getElementById('feed-overlay');
+      if (fo && fo.classList.contains('is-open') && fl) { makeEditable(fl, function () { return 'feed::list'; }); fl.__last = fl.innerHTML; }
+    }
+
+    // ---- edit-mode toggle ----
+    function setEdit(on) {
+      editMode = on;
+      document.body.classList.toggle('m-edit-on', on);
+      decorate(on);
+      if (on) rebindOpen();
+      if (btn) { btn.textContent = on ? 'Done editing' : 'Edit page'; btn.classList.toggle('is-on', on); }
+      if (bar) { bar.style.display = on ? '' : 'none'; bar.firstChild && (bar.firstChild.textContent = 'Editing in ' + curLang().toUpperCase() + ' — click any text and type; it saves on its own. Switch the site language to edit the other versions.'); }
+    }
+
+    // ---- floating UI (owner only) ----
+    function buildUI() {
+      if (btn) return;
+      injectCss();
+      btn = document.createElement('button');
+      btn.id = 'm-edit-btn'; btn.type = 'button'; btn.textContent = 'Edit page';
+      btn.addEventListener('click', function () { setEdit(!editMode); });
+      document.body.appendChild(btn);
+      bar = document.createElement('div'); bar.id = 'm-edit-bar'; bar.style.display = 'none';
+      var span = document.createElement('span'); span.textContent = 'Editing.'; bar.appendChild(span);
+      var done = document.createElement('button'); done.id = 'm-edit-done'; done.type = 'button'; done.textContent = 'Done';
+      done.addEventListener('click', function () { setEdit(false); }); bar.appendChild(done);
+      document.body.appendChild(bar);
+      toastEl = document.createElement('div'); toastEl.id = 'm-toast'; document.body.appendChild(toastEl);
+    }
+    function toast(msg, bad) {
+      if (!toastEl) return;
+      toastEl.textContent = msg; toastEl.className = bad ? 'show bad' : 'show';
+      clearTimeout(toast._t); toast._t = setTimeout(function () { toastEl.className = ''; }, 1700);
+    }
+    function injectCss() {
+      var s = document.createElement('style');
+      s.textContent =
+        '#m-edit-btn{position:fixed;right:18px;bottom:18px;z-index:3000;appearance:none;cursor:pointer;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font-family:var(--mono,monospace);font-size:12px;letter-spacing:.04em;padding:10px 16px;box-shadow:0 8px 24px -10px rgba(0,0,0,.5);}' +
+        '#m-edit-btn:hover{background:var(--ink);color:var(--paper);}' +
+        '#m-edit-btn.is-on{background:var(--accent);border-color:var(--accent);color:var(--paper);}' +
+        '#m-edit-bar{position:fixed;left:0;right:0;bottom:0;z-index:2990;display:flex;align-items:center;gap:14px;background:var(--ink);color:var(--paper);font-family:var(--mono,monospace);font-size:12px;line-height:1.5;padding:11px 18px;}' +
+        '#m-edit-bar span{flex:1;}' +
+        '#m-edit-done{appearance:none;cursor:pointer;border:1px solid var(--paper);background:transparent;color:var(--paper);font-family:var(--mono,monospace);font-size:11px;padding:6px 14px;}' +
+        '#m-edit-done:hover{background:var(--paper);color:var(--ink);}' +
+        '.m-edit-on .m-editing{outline:1px dashed color-mix(in oklch,var(--accent) 70%,transparent);outline-offset:3px;cursor:text;border-radius:2px;}' +
+        '.m-edit-on .m-editing:hover{background:color-mix(in oklch,var(--accent) 8%,transparent);}' +
+        '.m-edit-on .m-editing:focus{outline:2px solid var(--accent);background:color-mix(in oklch,var(--accent) 6%,transparent);}' +
+        '#m-toast{position:fixed;right:18px;bottom:66px;z-index:3001;background:var(--ink);color:var(--paper);font-family:var(--mono,monospace);font-size:11px;padding:7px 12px;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:none;}' +
+        '#m-toast.show{opacity:1;transform:none;}#m-toast.bad{background:oklch(0.55 0.20 28);}';
+      document.head.appendChild(s);
+    }
+
+    // ---- owner check ----
+    function checkOwner() {
+      if (!sb || !sb.auth || !sb.auth.getUser) return;
+      Promise.resolve(sb.auth.getUser()).then(function (u) {
+        var em = u && u.data && u.data.user && u.data.user.email;
+        isOwner = !!(em && String(em).toLowerCase() === ADMIN_EMAIL);
+        if (isOwner) { buildUI(); btn.style.display = ''; }
+        else { if (btn) btn.style.display = 'none'; if (editMode) setEdit(false); }
+      }).catch(function () { });
+    }
+    if (sb && sb.auth && sb.auth.onAuthStateChange) { try { sb.auth.onAuthStateChange(function () { checkOwner(); }); } catch (e) { } }
+
+    // ---- expose for the i18n / note / feed hooks ----
+    window.MeyanaEdit = {
+      apply: applyMain,
+      get: getOverride,
+      editing: function () { return editMode; },
+      bindContainer: bindContainer,
+      noteBodyKey: function (k) { return 'note::' + k + '::body'; },
+      noteTitleKey: function (k) { return 'note::' + k + '::title'; },
+      feedKey: function () { return 'feed::list'; }
+    };
+
+    fetchOverrides(function () { applyMain(); });
+    checkOwner();
+  } catch (e) { /* never break the page */ }
 })();
 
 </script>
