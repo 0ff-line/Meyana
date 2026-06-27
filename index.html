@@ -3632,32 +3632,6 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
           </div>
 
           <div class="featured-body">
-            <div class="featured-tag" data-i18n="featured_tag">mechanics · control · reinforcement learning</div>
-            <h3 data-i18n="featured_h3">One rig, three layers of control. <span class="accent">PID keeps it safe, a learned net makes it sharp, online adaptation holds the line.</span></h3>
-            <p data-i18n="featured_p">A 2-axis brushless camera gimbal on a Storm32 mount, sensed by an MPU-6050 IMU at 200 Hz and run entirely on a ~380 MAD ESP32. Identified as a lightly-damped 2ⁿᵈ-order plant (ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18), it pits a cascade PID against a PPO policy — then fuses them. Under added load and delay the PID falls into a self-sustained 3.2 Hz limit cycle; the autonomous controller stacks an auto-tuned PID, a frozen PPO residual net, and a safe online bias to erase that cycle (&gt; 99 %) and keep erasing it as the hardware drifts.</p>
-
-            <div class="specs" aria-label="Technical specifications">
-              <div class="row"><span class="k" data-i18n="spec_payload_k">axes</span><span class="v" data-i18n="spec_payload_v">2 · yaw + pitch (Storm32)</span></div>
-              <div class="row"><span class="k" data-i18n="spec_actuation_k">actuation</span><span class="v" data-i18n="spec_actuation_v">2× BLDC, torque-controlled</span></div>
-              <div class="row"><span class="k" data-i18n="spec_sensing_k">sensing</span><span class="v" data-i18n="spec_sensing_v">MPU-6050 IMU · INA226 current</span></div>
-              <div class="row"><span class="k" data-i18n="spec_compute_k">compute</span><span class="v" data-i18n="spec_compute_v">ESP32 WROOM-32 · 200 Hz loop</span></div>
-              <div class="row"><span class="k" data-i18n="spec_sim_k">training</span><span class="v" data-i18n="spec_sim_v">PPO · ~1 M steps · gymnasium env</span></div>
-              <div class="row"><span class="k" data-i18n="spec_status_k">identified</span><span class="v" data-i18n="spec_status_v">ωₙ 12.4 rad/s · ζ 0.18 · K 1.6</span></div>
-            </div>
-
-            <div class="compare" aria-label="Controller comparison">
-              <div class="col">
-                <h6><span class="dot pid" aria-hidden="true"></span> <span data-i18n="compare_pid">PID · cascade</span></h6>
-                <div class="k" id="rms-pid">0.42 s</div>
-                <div class="l" data-i18n="compare_l1">5 % response time · step 0.3 rad</div>
-              </div>
-              <div class="col">
-                <h6><span class="dot rl" aria-hidden="true"></span> <span data-i18n="compare_rl">RL · PPO policy</span></h6>
-                <div class="k" id="rms-rl">0.15 s</div>
-                <div class="l" data-i18n="compare_l2">− 64 % vs PID · same step</div>
-              </div>
-            </div>
-
             <!-- small performance plot -->
             <div class="perf-plot" aria-label="Pointing error over time">
               <div class="plot-head">
@@ -3694,6 +3668,32 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
               </div>
               <input type="range" id="dist-slider" min="0" max="100" value="0" step="1" aria-label="Added loop delay">
               <div class="ticks"><span>nominal</span><span>+ 20 ms</span><span>+ 40 ms</span><span>+ 60 ms</span></div>
+            </div>
+
+            <div class="featured-tag" data-i18n="featured_tag">mechanics · control · reinforcement learning</div>
+            <h3 data-i18n="featured_h3">One rig, three layers of control. <span class="accent">PID keeps it safe, a learned net makes it sharp, online adaptation holds the line.</span></h3>
+            <p data-i18n="featured_p">A 2-axis brushless camera gimbal on a Storm32 mount, sensed by an MPU-6050 IMU at 200 Hz and run entirely on a ~380 MAD ESP32. Identified as a lightly-damped 2ⁿᵈ-order plant (ωₙ ≈ 12.4 rad/s, ζ ≈ 0.18), it pits a cascade PID against a PPO policy — then fuses them. Under added load and delay the PID falls into a self-sustained 3.2 Hz limit cycle; the autonomous controller stacks an auto-tuned PID, a frozen PPO residual net, and a safe online bias to erase that cycle (&gt; 99 %) and keep erasing it as the hardware drifts.</p>
+
+            <div class="specs" aria-label="Technical specifications">
+              <div class="row"><span class="k" data-i18n="spec_payload_k">axes</span><span class="v" data-i18n="spec_payload_v">2 · yaw + pitch (Storm32)</span></div>
+              <div class="row"><span class="k" data-i18n="spec_actuation_k">actuation</span><span class="v" data-i18n="spec_actuation_v">2× BLDC, torque-controlled</span></div>
+              <div class="row"><span class="k" data-i18n="spec_sensing_k">sensing</span><span class="v" data-i18n="spec_sensing_v">MPU-6050 IMU · INA226 current</span></div>
+              <div class="row"><span class="k" data-i18n="spec_compute_k">compute</span><span class="v" data-i18n="spec_compute_v">ESP32 WROOM-32 · 200 Hz loop</span></div>
+              <div class="row"><span class="k" data-i18n="spec_sim_k">training</span><span class="v" data-i18n="spec_sim_v">PPO · ~1 M steps · gymnasium env</span></div>
+              <div class="row"><span class="k" data-i18n="spec_status_k">identified</span><span class="v" data-i18n="spec_status_v">ωₙ 12.4 rad/s · ζ 0.18 · K 1.6</span></div>
+            </div>
+
+            <div class="compare" aria-label="Controller comparison">
+              <div class="col">
+                <h6><span class="dot pid" aria-hidden="true"></span> <span data-i18n="compare_pid">PID · cascade</span></h6>
+                <div class="k" id="rms-pid">0.42 s</div>
+                <div class="l" data-i18n="compare_l1">5 % response time · step 0.3 rad</div>
+              </div>
+              <div class="col">
+                <h6><span class="dot rl" aria-hidden="true"></span> <span data-i18n="compare_rl">RL · PPO policy</span></h6>
+                <div class="k" id="rms-rl">0.15 s</div>
+                <div class="l" data-i18n="compare_l2">− 64 % vs PID · same step</div>
+              </div>
             </div>
 
             <a href="#" class="cta" id="open-study"><span data-i18n="cta_buildlog">Read the build log</span> <span class="arrow">→</span></a>
@@ -5143,6 +5143,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       studyOverlay.classList.add('is-open');
       studyOverlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
+      if (window.MeyanaEdit) window.MeyanaEdit.bindStudy(studyOverlay.querySelector('.study-body'));
       // animate comparison bars in from zero
       const fills = studyOverlay.querySelectorAll('.bar-fill[data-w]');
       fills.forEach(f => { f.style.width = '0'; });
@@ -6983,15 +6984,14 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   window.MeyanaPlot = { tfResponse: tfResponse, parseData: parseData, makeChart: makeChart };
 })();
 /* ===== Meyana · dynamic projects + admin (Supabase-backed) =====
-   Admin (signed-in owner) gets: add / edit / delete; "import to edit" on the
-   original static cards (adopts them into the database so they become fully
-   editable, with no duplication on reload); a PDF report per project (paste a
-   link or upload to Storage); a per-project results plot (computed live from a
-   transfer function, or charted from pasted data); and ONE global toggle for
-   view counts (on = everyone sees them, off = only the owner does). Everything
-   is wrapped so a missing table / column / bucket / offline state silently
-   leaves the static cards untouched. Columns: pdf_url, views, plot,
-   imported_key, open_study (+ a one-row app_config table). */
+   Renders DB projects, and for EVERY card (built-in or DB) provides a
+   "details *" page (opens the editable project-details modal; the gimbal opens
+   its study), and a per-project view counter with an owner check-box that
+   makes that project's count public. Admin also gets add / edit / delete /
+   PDF / plot / import. Defensive: a missing table / column / offline state
+   silently leaves the built-in cards untouched. Tables/cols: projects(+pdf_url,
+   views, plot, imported_key, open_study), project_views(key,count,is_public),
+   content_overrides (used by the editor). */
 (function () {
   try {
     var M = window.__MEYANA || {};
@@ -7001,8 +7001,8 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     var grid = sec && sec.querySelector('.grid');
     if (!sec || !grid) return;
 
-    var isAdmin = false, editingId = null, loaded = [], panel = null, globalShowViews = false;
-    var SESSION_KEY = 'meyana_viewed';
+    var isAdmin = false, editingId = null, loaded = [], panel = null;
+    var viewData = {};            // key -> {count, is_public, __dv}
 
     function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
     function chipHtml(chips) {
@@ -7011,81 +7011,96 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     }
     function parseNums(s) { return String(s || '').split(/[\s,;]+/).map(Number).filter(function (v) { return !isNaN(v); }); }
     function asObj(v) { if (!v) return null; if (typeof v === 'string') { try { return JSON.parse(v); } catch (e) { return null; } } return v; }
+    function titleOf(p) { return ((p.title_accent || '') + ' ' + (p.title_rest || '')).replace(/\s+/g, ' ').trim() || 'Project'; }
 
-    // ---------- view counting (deduped per browser session) ----------
-    function viewedList() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch (e) { return []; } }
-    function markViewed(id) { try { var a = viewedList(); if (a.indexOf(id) < 0) { a.push(id); sessionStorage.setItem(SESSION_KEY, JSON.stringify(a)); } } catch (e) { } }
-    function bumpView(p) {
-      if (typeof p._dv === 'number') return p._dv;
-      var base = p.views || 0;
-      if (!sb || !p.id) { p._dv = base; return base; }
-      if (viewedList().indexOf(p.id) >= 0) { p._dv = base; return base; }
-      markViewed(p.id);
-      try {
-        Promise.resolve(sb.rpc('increment_project_view', { pid: String(p.id) })).catch(function () {
-          try { sb.from('projects').update({ views: base + 1 }).eq('id', p.id); } catch (e) { }
-        });
-      } catch (e) { }
-      p._dv = base + 1; return p._dv;
-    }
-    function showCounts() { return globalShowViews || isAdmin; }
-
-    // ---------- global view-count setting (app_config, single row id=1) ----------
-    function loadConfig(cb) {
+    // ---------- per-project views (works for built-in AND DB cards) ----------
+    function viewedList() { try { return JSON.parse(sessionStorage.getItem('meyana_viewed') || '[]'); } catch (e) { return []; } }
+    function markViewed(k) { try { var a = viewedList(); if (a.indexOf(k) < 0) { a.push(k); sessionStorage.setItem('meyana_viewed', JSON.stringify(a)); } } catch (e) { } }
+    function loadViews(cb) {
       if (!sb) { if (cb) cb(); return; }
-      Promise.resolve(sb.from('app_config').select('show_views').eq('id', 1)).then(function (res) {
-        if (res && res.data && res.data[0] && typeof res.data[0].show_views === 'boolean') globalShowViews = res.data[0].show_views;
+      Promise.resolve(sb.from('project_views').select('key, count, is_public')).then(function (res) {
+        if (res && res.data) res.data.forEach(function (r) { viewData[r.key] = { count: r.count || 0, is_public: !!r.is_public }; });
         if (cb) cb();
       }).catch(function () { if (cb) cb(); });
     }
-    function setConfig(val, done) {
-      if (!sb) return;
-      Promise.resolve(sb.from('app_config').upsert({ id: 1, show_views: val }).select()).then(function (res) {
-        if (res && res.error) throw res.error;
-        globalShowViews = val; if (done) done(null);
+    function bumpView(key) {
+      var rec = viewData[key] || (viewData[key] = { count: 0, is_public: false });
+      if (rec.__dv != null) return rec.__dv;
+      var base = rec.count || 0;
+      if (!sb || viewedList().indexOf(key) >= 0) { rec.__dv = base; return base; }
+      markViewed(key);
+      try { Promise.resolve(sb.rpc('bump_project_view', { k: key })).catch(function () { }); } catch (e) { }
+      rec.__dv = base + 1; return rec.__dv;
+    }
+    function isPublic(key) { return !!(viewData[key] && viewData[key].is_public); }
+    function showCount(key) { return isPublic(key) || isAdmin; }
+    function setPublic(key, val, done) {
+      if (!sb) { if (done) done('no-db'); return; }
+      if (!viewData[key]) viewData[key] = { count: 0, is_public: false };
+      viewData[key].is_public = val;
+      Promise.resolve(sb.from('project_views').upsert({ key: key, is_public: val }).select()).then(function (res) {
+        if (res && res.error) throw res.error; if (done) done(null);
       }).catch(function (err) { if (done) done(err); });
     }
+    function badgeHtml(key) {
+      if (!showCount(key)) return '';
+      var n = bumpView(key);
+      var priv = (!isPublic(key) && isAdmin) ? ' \u00b7 only you' : '';
+      return '<span class="proj-views">read ' + n + (n === 1 ? ' time' : ' times') + priv + '</span>';
+    }
+    function viewCheckbox(key) {
+      var lab = document.createElement('label'); lab.className = 'pv-check';
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = isPublic(key);
+      var span = document.createElement('span'); span.textContent = 'show views to everyone';
+      lab.appendChild(cb); lab.appendChild(span);
+      cb.addEventListener('change', function (e) {
+        e.stopPropagation(); cb.disabled = true;
+        setPublic(key, cb.checked, function (err) { cb.disabled = false; if (err) { cb.checked = !cb.checked; window.alert('Could not save — run the SQL (project_views).'); } renderAll(); });
+      });
+      lab.addEventListener('click', function (e) { e.stopPropagation(); });
+      return lab;
+    }
 
-    // ---------- card ----------
+    // ---------- details button ----------
+    function openDetailsFor(key, title, openStudy) {
+      if (openStudy) { var b = document.getElementById('open-study'); if (b) { b.click(); return; } }
+      if (window.MeyanaEdit && window.MeyanaEdit.openDetails) window.MeyanaEdit.openDetails(key, title);
+    }
+
+    // ---------- DB card ----------
     function cardEl(p) {
       var art = document.createElement('article');
       art.className = 'card';
       art.setAttribute('data-tags', (String(p.tags || '').trim()) || 'control');
       if (p.id) art.setAttribute('data-db-id', p.id);
+      var key = 'db-' + p.id;
       var title = (p.title_accent ? '<span class="accent">' + esc(p.title_accent) + '</span>' : '') + esc(p.title_rest || '');
-      var views = bumpView(p);
       var plot = asObj(p.plot);
       var extra = '';
       if (p.pdf_url) extra += '<a class="proj-link" href="' + esc(p.pdf_url) + '" target="_blank" rel="noopener">PDF report \u2197</a>';
       if (plot) extra += '<button type="button" class="proj-link proj-plot" data-plot>Results \u25b8</button>';
-      var badge = '';
-      if (showCounts()) {
-        var priv = (!globalShowViews && isAdmin) ? ' \u00b7 only you' : '';
-        badge = '<span class="proj-views">read ' + views + (views === 1 ? ' time' : ' times') + priv + '</span>';
-      }
+      extra += '<button type="button" class="proj-link proj-details" data-details>details \u25b8</button>';
       art.innerHTML =
         '<div class="row1"><span class="num">' + esc(p.num ? ('\u2116 ' + p.num) : '\u2116') + '</span><span>' + esc(p.meta || '') + '</span></div>' +
         '<h4>' + title + '</h4>' +
         '<p>' + esc(p.descr || '') + '</p>' +
-        (extra ? '<div class="proj-extra">' + extra + '</div>' : '') +
-        '<div class="tags">' + chipHtml(p.chips) + badge + '</div>';
-      if (plot) { var pb = art.querySelector('[data-plot]'); if (pb) pb.addEventListener('click', function (e) { e.stopPropagation(); openPlot(plot, p); }); }
+        '<div class="proj-extra">' + extra + '</div>' +
+        '<div class="tags">' + chipHtml(p.chips) + badgeHtml(key) + '</div>';
+      var pb = art.querySelector('[data-plot]'); if (pb) pb.addEventListener('click', function (e) { e.stopPropagation(); openPlot(plot, p); });
+      var db = art.querySelector('[data-details]'); if (db) db.addEventListener('click', function (e) { e.stopPropagation(); openDetailsFor(key, titleOf(p), !!p.open_study); });
       if (p.open_study) {
         art.setAttribute('data-open-study', '1'); art.style.cursor = 'pointer';
-        art.addEventListener('click', function (e) {
-          if (e.target.closest('.proj-admin') || e.target.closest('[data-plot]') || e.target.closest('.proj-link')) return;
-          var b = document.getElementById('open-study'); if (b) b.click();
-        });
+        art.addEventListener('click', function (e) { if (e.target.closest('.proj-admin') || e.target.closest('.proj-link') || e.target.closest('.pv-check') || e.target.closest('.m-editing')) return; var b = document.getElementById('open-study'); if (b) b.click(); });
       }
-      if (isAdmin && p.id) art.appendChild(adminBar(p, art));
+      if (isAdmin && p.id) art.appendChild(adminBar(p, art, key));
       return art;
     }
-
-    function adminBar(p, art) {
+    function adminBar(p, art, key) {
       var bar = document.createElement('div'); bar.className = 'proj-admin';
       function mk(txt, cls, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'pa-btn' + (cls ? ' ' + cls : ''); b.textContent = txt; b.addEventListener('click', function (e) { e.stopPropagation(); fn(e); }); return b; }
       bar.appendChild(mk('edit', '', function () { fillForm(p); }));
       bar.appendChild(mk('delete', 'pa-del', function () { delProject(p, art); }));
+      bar.appendChild(viewCheckbox(key));
       return bar;
     }
     function delProject(p, art) {
@@ -7099,27 +7114,23 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       }).catch(function (err) { window.alert((err && err.message) ? ('Could not delete: ' + err.message) : 'Could not delete.'); });
     }
 
-    // ---------- adopt a static (hard-coded) card into the database ----------
+    // ---------- built-in (static) cards ----------
     function staticKey(card) {
       var num = (card.querySelector('.num') ? card.querySelector('.num').textContent : '').replace(/[^0-9]/g, '');
       return 'static-' + (num || (card.querySelector('h4') ? card.querySelector('h4').textContent.trim().slice(0, 18) : Math.random().toString(36).slice(2)));
     }
+    function staticTitle(card) { var h = card.querySelector('h4'); return h ? h.textContent.replace(/\s+/g, ' ').trim() : 'Project'; }
     function parseStatic(card) {
       var num = (card.querySelector('.num') ? card.querySelector('.num').textContent : '').replace(/[^0-9]/g, '');
       var spans = card.querySelectorAll('.row1 span');
       var meta = spans[1] ? spans[1].textContent.trim() : '';
-      var h4 = card.querySelector('h4');
-      var acc = h4 && h4.querySelector('.accent');
+      var h4 = card.querySelector('h4'); var acc = h4 && h4.querySelector('.accent');
       var title_accent = acc ? acc.textContent.trim() : '';
       var title_rest = '';
       if (h4) { var cl = h4.cloneNode(true); var a = cl.querySelector('.accent'); if (a) a.remove(); title_rest = cl.textContent.replace(/\s+/g, ' '); title_rest = title_accent ? title_rest.replace(/^\s+/, ' ') : title_rest.trim(); }
       var descr = (card.querySelector('p') ? card.querySelector('p').textContent.trim() : '');
       var chips = Array.prototype.map.call(card.querySelectorAll('.tag'), function (t) { return t.textContent.trim(); }).join(', ');
-      return {
-        num: num, meta: meta, title_accent: title_accent, title_rest: title_rest, descr: descr,
-        tags: card.getAttribute('data-tags') || 'control', chips: chips, sort: parseInt(num, 10) || 0,
-        open_study: card.hasAttribute('data-open-study'), imported_key: staticKey(card)
-      };
+      return { num: num, meta: meta, title_accent: title_accent, title_rest: title_rest, descr: descr, tags: card.getAttribute('data-tags') || 'control', chips: chips, sort: parseInt(num, 10) || 0, open_study: card.hasAttribute('data-open-study'), imported_key: staticKey(card) };
     }
     function adoptStatic(card) {
       if (!sb) { window.alert('Sign in first.'); return; }
@@ -7129,40 +7140,52 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         var p = (res.data && res.data[0]) ? res.data[0] : rec;
         loaded.push(p); card.style.display = 'none'; card.setAttribute('data-adopted', '1');
         renderAll(); fillForm(p);
-      }).catch(function (err) {
-        var m = (err && err.message) ? err.message : '';
-        if (/imported_key|open_study/i.test(m)) m = 'run the updated SQL first (it adds the new columns).';
-        window.alert(m ? ('Could not import: ' + m) : 'Could not import this card.');
-      });
+      }).catch(function (err) { var m = (err && err.message) ? err.message : ''; if (/imported_key|open_study/i.test(m)) m = 'run the updated SQL first.'; window.alert(m ? ('Could not import: ' + m) : 'Could not import this card.'); });
+    }
+    function decorateStatic(card) {
+      if (card.getAttribute('data-adopted')) return;
+      var key = staticKey(card), isStudy = card.hasAttribute('data-open-study');
+      // details button (everyone), injected once
+      if (!card.querySelector('.proj-extra.is-static')) {
+        var ex = document.createElement('div'); ex.className = 'proj-extra is-static';
+        var d = document.createElement('button'); d.type = 'button'; d.className = 'proj-link proj-details'; d.textContent = 'details \u25b8';
+        d.addEventListener('click', function (e) { e.stopPropagation(); openDetailsFor(key, staticTitle(card), isStudy); });
+        ex.appendChild(d);
+        var tags = card.querySelector('.tags'); if (tags) card.insertBefore(ex, tags); else card.appendChild(ex);
+      }
+      // view badge (everyone), updated each render
+      var tags = card.querySelector('.tags');
+      if (tags) {
+        var old = tags.querySelector('.proj-views'); if (old) old.remove();
+        if (showCount(key)) { var n = bumpView(key); var s = document.createElement('span'); s.className = 'proj-views'; s.textContent = 'read ' + n + (n === 1 ? ' time' : ' times') + ((!isPublic(key) && isAdmin) ? ' \u00b7 only you' : ''); tags.appendChild(s); }
+      }
+      // admin controls, injected once, shown/hidden by role
+      var bar = card.querySelector('.proj-admin.is-static');
+      if (isAdmin) {
+        if (!bar) {
+          bar = document.createElement('div'); bar.className = 'proj-admin is-static';
+          var imp = document.createElement('button'); imp.type = 'button'; imp.className = 'pa-btn'; imp.textContent = 'import to edit';
+          imp.addEventListener('click', function (e) { e.stopPropagation(); adoptStatic(card); });
+          var note = document.createElement('span'); note.className = 'pa-note'; note.textContent = 'for PDF / plot';
+          bar.appendChild(imp); bar.appendChild(note); bar.appendChild(viewCheckbox(key));
+          card.appendChild(bar);
+        } else { bar.style.display = ''; var oldcb = bar.querySelector('.pv-check'); if (oldcb) { var nc = viewCheckbox(key); bar.replaceChild(nc, oldcb); } }
+      } else if (bar) bar.style.display = 'none';
     }
 
     // ---------- render ----------
     function refilter() { var a = document.querySelector('#filters button.is-on'); if (a) a.click(); }
     function dbKeys() { var s = {}; loaded.forEach(function (p) { if (p.imported_key) s[p.imported_key] = 1; }); return s; }
     function staticCards() { return Array.prototype.slice.call(grid.querySelectorAll('.card:not([data-db-id])')); }
-    function dedupStatics() {
-      var keys = dbKeys();
-      staticCards().forEach(function (c) { if (keys[staticKey(c)]) { c.style.display = 'none'; c.setAttribute('data-adopted', '1'); } });
-    }
-    function decorateStatics() {
-      staticCards().forEach(function (c) {
-        if (c.getAttribute('data-adopted')) return;
-        var bar = c.querySelector('.proj-admin.is-static');
-        if (isAdmin) {
-          if (!bar) {
-            bar = document.createElement('div'); bar.className = 'proj-admin is-static';
-            var b = document.createElement('button'); b.type = 'button'; b.className = 'pa-btn'; b.textContent = 'import to edit';
-            b.addEventListener('click', function (e) { e.stopPropagation(); adoptStatic(c); });
-            var note = document.createElement('span'); note.className = 'pa-note'; note.textContent = 'copies it into your database';
-            bar.appendChild(b); bar.appendChild(note); c.appendChild(bar);
-          } else bar.style.display = '';
-        } else if (bar) bar.style.display = 'none';
-      });
-    }
     function renderAll() {
       Array.prototype.slice.call(grid.querySelectorAll('[data-db-id]')).forEach(function (n) { n.remove(); });
       loaded.forEach(function (p) { grid.appendChild(cardEl(p)); });
-      dedupStatics(); decorateStatics(); refilter();
+      var keys = dbKeys();
+      staticCards().forEach(function (c) {
+        if (keys[staticKey(c)]) { c.style.display = 'none'; c.setAttribute('data-adopted', '1'); }
+        else decorateStatic(c);
+      });
+      refilter();
     }
     function load() {
       if (!sb) return;
@@ -7172,13 +7195,11 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       }).catch(function () { });
     }
 
-    // ---------- admin form (add + edit) ----------
+    // ---------- admin form ----------
     function ensurePanel() {
       if (panel) return panel;
-      var w = document.createElement('div');
-      w.id = 'admin-add';
+      var w = document.createElement('div'); w.id = 'admin-add';
       w.innerHTML =
-        '<div class="aconfig"><span class="acfg-l">View counts</span><button type="button" id="ap-vtoggle" class="vtoggle">\u2026</button><span class="acfg-h">on = visitors see &ldquo;read N times&rdquo; \u00b7 off = only you do</span></div>' +
         '<div class="ahead" id="ap-head">Admin \u00b7 add a project \u2014 saves to your database and appears live</div>' +
         '<div class="arow"><input id="ap-num" placeholder="05"><input id="ap-meta" placeholder="2024 \u00b7 driver board"></div>' +
         '<input id="ap-tacc" placeholder="title \u2014 highlighted start (e.g. FOC driver)">' +
@@ -7189,69 +7210,35 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         '<label><input type="checkbox" value="hardware" checked>Hardware</label></div>' +
         '<input id="ap-chips" placeholder="tags, comma-separated (first one highlighted)">' +
         '<div class="asub">PDF report <span>(optional \u2014 paste a link or upload a file)</span></div>' +
-        '<input id="ap-pdf" placeholder="https://\u2026/report.pdf">' +
-        '<input id="ap-pdf-file" type="file" accept="application/pdf">' +
+        '<input id="ap-pdf" placeholder="https://\u2026/report.pdf"><input id="ap-pdf-file" type="file" accept="application/pdf">' +
         '<div class="asub">Results plot <span>(optional)</span></div>' +
         '<select id="ap-plot-mode"><option value="none">no plot</option><option value="compute">computed \u2014 from a transfer function</option><option value="data">from pasted data</option></select>' +
-        '<div id="ap-plot-compute" class="aplotbox">' +
-        '<div class="arow3"><input id="ap-plot-num" placeholder="numerator coeffs, e.g. 246"><input id="ap-plot-den" placeholder="denominator, e.g. 1, 4.46, 153.8"></div>' +
-        '<div class="arow3"><select id="ap-plot-kind"><option value="step">step response</option><option value="impulse">impulse response</option></select><input id="ap-plot-tend" placeholder="time span (s), e.g. 3"></div>' +
-        '</div>' +
-        '<div id="ap-plot-data" class="aplotbox"><textarea id="ap-plot-raw" placeholder="paste columns: first = x, rest = series\n0   1.0\n0.05 0.92\n0.10 0.71"></textarea></div>' +
+        '<div id="ap-plot-compute" class="aplotbox"><div class="arow3"><input id="ap-plot-num" placeholder="numerator coeffs, e.g. 246"><input id="ap-plot-den" placeholder="denominator, e.g. 1, 4.46, 153.8"></div>' +
+        '<div class="arow3"><select id="ap-plot-kind"><option value="step">step response</option><option value="impulse">impulse response</option></select><input id="ap-plot-tend" placeholder="time span (s), e.g. 3"></div></div>' +
+        '<div id="ap-plot-data" class="aplotbox"><textarea id="ap-plot-raw" placeholder="paste columns: first = x, rest = series"></textarea></div>' +
         '<div id="ap-plot-labels" class="aplotbox"><div class="arow3"><input id="ap-plot-xlabel" placeholder="x-axis label"><input id="ap-plot-ylabel" placeholder="y-axis label"></div></div>' +
         '<div class="abtns"><button class="asave" id="ap-save">Add project \u2192</button><button class="acancel" id="ap-cancel" style="display:none;">cancel edit</button></div>' +
         '<div class="amsg" id="ap-msg"></div>';
       sec.appendChild(w);
       var g = function (id) { return w.querySelector(id); };
-      function syncMode() {
-        var m = g('#ap-plot-mode').value;
-        g('#ap-plot-compute').style.display = (m === 'compute') ? '' : 'none';
-        g('#ap-plot-data').style.display = (m === 'data') ? '' : 'none';
-        g('#ap-plot-labels').style.display = (m === 'none') ? 'none' : '';
-      }
+      function syncMode() { var m = g('#ap-plot-mode').value; g('#ap-plot-compute').style.display = (m === 'compute') ? '' : 'none'; g('#ap-plot-data').style.display = (m === 'data') ? '' : 'none'; g('#ap-plot-labels').style.display = (m === 'none') ? 'none' : ''; }
       g('#ap-plot-mode').addEventListener('change', syncMode); syncMode();
       g('#ap-cancel').addEventListener('click', resetForm);
       g('#ap-save').addEventListener('click', doSave);
-      var vt = g('#ap-vtoggle');
-      function paintToggle() { vt.textContent = globalShowViews ? 'ON \u00b7 visitors see counts' : 'OFF \u00b7 only you see counts'; vt.className = 'vtoggle' + (globalShowViews ? ' is-on' : ''); }
-      paintToggle();
-      vt.addEventListener('click', function () {
-        vt.disabled = true;
-        setConfig(!globalShowViews, function (err) {
-          vt.disabled = false; paintToggle();
-          if (err) { g('#ap-msg').className = 'amsg err'; g('#ap-msg').textContent = 'Could not save the setting \u2014 run the updated SQL (app_config table).'; }
-          renderAll();
-        });
-      });
       panel = w; return w;
     }
     function P(id) { return panel.querySelector(id); }
-
     function buildPlot() {
       var mode = P('#ap-plot-mode').value;
-      if (mode === 'compute') {
-        var num = parseNums(P('#ap-plot-num').value), den = parseNums(P('#ap-plot-den').value);
-        if (!num.length || !den.length) return null;
-        return { mode: 'compute', kind: P('#ap-plot-kind').value || 'step', num: num, den: den, tEnd: parseFloat(P('#ap-plot-tend').value) || 5, xlabel: P('#ap-plot-xlabel').value || 't (s)', ylabel: P('#ap-plot-ylabel').value || 'output' };
-      }
-      if (mode === 'data') {
-        var raw = P('#ap-plot-raw').value;
-        var series = (window.MeyanaPlot ? window.MeyanaPlot.parseData(raw) : []);
-        if (!series.length) return null;
-        return { mode: 'data', raw: raw, series: series, xlabel: P('#ap-plot-xlabel').value || 'x', ylabel: P('#ap-plot-ylabel').value || 'y' };
-      }
+      if (mode === 'compute') { var num = parseNums(P('#ap-plot-num').value), den = parseNums(P('#ap-plot-den').value); if (!num.length || !den.length) return null; return { mode: 'compute', kind: P('#ap-plot-kind').value || 'step', num: num, den: den, tEnd: parseFloat(P('#ap-plot-tend').value) || 5, xlabel: P('#ap-plot-xlabel').value || 't (s)', ylabel: P('#ap-plot-ylabel').value || 'output' }; }
+      if (mode === 'data') { var raw = P('#ap-plot-raw').value; var series = (window.MeyanaPlot ? window.MeyanaPlot.parseData(raw) : []); if (!series.length) return null; return { mode: 'data', raw: raw, series: series, xlabel: P('#ap-plot-xlabel').value || 'x', ylabel: P('#ap-plot-ylabel').value || 'y' }; }
       return null;
     }
-
     function fillForm(p) {
       ensurePanel(); panel.style.display = ''; editingId = p.id;
-      P('#ap-head').textContent = 'Admin \u00b7 editing project \u2014 saves changes live';
-      P('#ap-save').textContent = 'Save changes \u2192';
-      P('#ap-cancel').style.display = '';
-      P('#ap-num').value = p.num || ''; P('#ap-meta').value = p.meta || '';
-      P('#ap-tacc').value = p.title_accent || ''; P('#ap-trest').value = p.title_rest || '';
-      P('#ap-descr').value = p.descr || ''; P('#ap-chips').value = p.chips || '';
-      P('#ap-pdf').value = p.pdf_url || ''; var fi = P('#ap-pdf-file'); if (fi) fi.value = '';
+      P('#ap-head').textContent = 'Admin \u00b7 editing project \u2014 saves changes live'; P('#ap-save').textContent = 'Save changes \u2192'; P('#ap-cancel').style.display = '';
+      P('#ap-num').value = p.num || ''; P('#ap-meta').value = p.meta || ''; P('#ap-tacc').value = p.title_accent || ''; P('#ap-trest').value = p.title_rest || '';
+      P('#ap-descr').value = p.descr || ''; P('#ap-chips').value = p.chips || ''; P('#ap-pdf').value = p.pdf_url || ''; var fi = P('#ap-pdf-file'); if (fi) fi.value = '';
       var cats = String(p.tags || '').split(/\s+/);
       Array.prototype.slice.call(panel.querySelectorAll('.achecks input')).forEach(function (c) { c.checked = cats.indexOf(c.value) >= 0; });
       var plot = asObj(p.plot); var modeSel = P('#ap-plot-mode');
@@ -7259,46 +7246,30 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       else if (plot && plot.mode === 'data') { modeSel.value = 'data'; P('#ap-plot-raw').value = plot.raw || ''; }
       else { modeSel.value = 'none'; }
       if (plot) { P('#ap-plot-xlabel').value = plot.xlabel || ''; P('#ap-plot-ylabel').value = plot.ylabel || ''; }
-      modeSel.dispatchEvent(new Event('change'));
-      P('#ap-msg').className = 'amsg'; P('#ap-msg').textContent = '';
+      modeSel.dispatchEvent(new Event('change')); P('#ap-msg').className = 'amsg'; P('#ap-msg').textContent = '';
       try { panel.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
     }
     function resetForm() {
       if (!panel) return; editingId = null;
-      P('#ap-head').textContent = 'Admin \u00b7 add a project \u2014 saves to your database and appears live';
-      P('#ap-save').textContent = 'Add project \u2192'; P('#ap-cancel').style.display = 'none';
+      P('#ap-head').textContent = 'Admin \u00b7 add a project \u2014 saves to your database and appears live'; P('#ap-save').textContent = 'Add project \u2192'; P('#ap-cancel').style.display = 'none';
       ['#ap-num', '#ap-meta', '#ap-tacc', '#ap-trest', '#ap-descr', '#ap-chips', '#ap-pdf', '#ap-plot-num', '#ap-plot-den', '#ap-plot-tend', '#ap-plot-raw', '#ap-plot-xlabel', '#ap-plot-ylabel'].forEach(function (id) { var e = P(id); if (e) e.value = ''; });
-      var fi = P('#ap-pdf-file'); if (fi) fi.value = '';
-      P('#ap-plot-mode').value = 'none'; P('#ap-plot-mode').dispatchEvent(new Event('change'));
-      P('#ap-msg').className = 'amsg'; P('#ap-msg').textContent = '';
+      var fi = P('#ap-pdf-file'); if (fi) fi.value = ''; P('#ap-plot-mode').value = 'none'; P('#ap-plot-mode').dispatchEvent(new Event('change')); P('#ap-msg').className = 'amsg'; P('#ap-msg').textContent = '';
     }
-
     function uploadPdf(file, cb) {
       if (!sb || !sb.storage) { cb(null, 'Storage unavailable \u2014 paste a URL instead.'); return; }
       var path = 'p' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       Promise.resolve(sb.storage.from('project-pdfs').upload(path, file, { upsert: true, contentType: 'application/pdf' })).then(function (res) {
-        if (res.error) throw res.error;
-        var pub = sb.storage.from('project-pdfs').getPublicUrl(path);
-        var url = pub && pub.data && pub.data.publicUrl;
-        cb(url || null, url ? null : 'Uploaded, but no public URL \u2014 is the bucket public?');
+        if (res.error) throw res.error; var pub = sb.storage.from('project-pdfs').getPublicUrl(path); var url = pub && pub.data && pub.data.publicUrl; cb(url || null, url ? null : 'Uploaded, but no public URL \u2014 is the bucket public?');
       }).catch(function (err) { cb(null, (err && err.message) ? ('Upload failed: ' + err.message) : 'Upload failed \u2014 paste a URL instead.'); });
     }
-
     function doSave() {
       var msg = P('#ap-msg'), save = P('#ap-save');
-      var tacc = (P('#ap-tacc').value || '').trim(), trest = (P('#ap-trest').value || '').trim();
-      var descr = (P('#ap-descr').value || '').trim();
+      var tacc = (P('#ap-tacc').value || '').trim(), trest = (P('#ap-trest').value || '').trim(), descr = (P('#ap-descr').value || '').trim();
       if (!tacc && !trest) { msg.className = 'amsg err'; msg.textContent = 'Add a title.'; return; }
       if (descr.length < 8) { msg.className = 'amsg err'; msg.textContent = 'Add a short description.'; return; }
       var cats = Array.prototype.slice.call(panel.querySelectorAll('.achecks input:checked')).map(function (c) { return c.value; });
-      var rec = {
-        num: (P('#ap-num').value || '').trim(), meta: (P('#ap-meta').value || '').trim(),
-        title_accent: tacc, title_rest: trest, descr: descr,
-        tags: (cats.length ? cats : ['control']).join(' '), chips: (P('#ap-chips').value || '').trim(),
-        sort: parseInt((P('#ap-num').value || '0'), 10) || 0, plot: buildPlot()
-      };
-      var pasted = (P('#ap-pdf').value || '').trim();
-      var fileInput = P('#ap-pdf-file'); var file = fileInput && fileInput.files && fileInput.files[0];
+      var rec = { num: (P('#ap-num').value || '').trim(), meta: (P('#ap-meta').value || '').trim(), title_accent: tacc, title_rest: trest, descr: descr, tags: (cats.length ? cats : ['control']).join(' '), chips: (P('#ap-chips').value || '').trim(), sort: parseInt((P('#ap-num').value || '0'), 10) || 0, plot: buildPlot() };
+      var pasted = (P('#ap-pdf').value || '').trim(); var fileInput = P('#ap-pdf-file'); var file = fileInput && fileInput.files && fileInput.files[0];
       save.disabled = true; msg.className = 'amsg'; msg.textContent = file ? 'Uploading PDF\u2026' : 'Saving\u2026';
       if (file) { uploadPdf(file, function (url, err) { if (err) { msg.className = 'amsg'; msg.textContent = err + ' Saving the rest\u2026'; } rec.pdf_url = url || pasted || null; finalize(rec); }); }
       else { rec.pdf_url = pasted || null; finalize(rec); }
@@ -7307,17 +7278,15 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       var msg = P('#ap-msg'), save = P('#ap-save');
       var op = editingId ? sb.from('projects').update(rec).eq('id', editingId).select() : sb.from('projects').insert([rec]).select();
       Promise.resolve(op).then(function (res) {
-        save.disabled = false;
-        if (res.error) throw res.error;
+        save.disabled = false; if (res.error) throw res.error;
         var saved = (res.data && res.data[0]) ? res.data[0] : rec;
-        if (editingId) { loaded = loaded.map(function (x) { if (x.id === editingId) { saved._dv = x._dv; return saved; } return x; }); msg.className = 'amsg ok'; msg.textContent = 'Saved \u2713'; }
+        if (editingId) { loaded = loaded.map(function (x) { return x.id === editingId ? saved : x; }); msg.className = 'amsg ok'; msg.textContent = 'Saved \u2713'; }
         else { loaded.push(saved); msg.className = 'amsg ok'; msg.textContent = 'Added \u2713 \u2014 it is live on your site.'; }
         renderAll(); resetForm();
       }).catch(function (err) {
-        save.disabled = false; msg.className = 'amsg err';
-        var m = (err && err.message) ? err.message : '';
-        if (/column .*plot|plot.* does not exist/i.test(m)) m = 'the `plot` column is missing \u2014 run the SQL in the guide.';
-        else if (/pdf_url/i.test(m)) m = 'the `pdf_url` column is missing \u2014 run the SQL in the guide.';
+        save.disabled = false; msg.className = 'amsg err'; var m = (err && err.message) ? err.message : '';
+        if (/plot/i.test(m) && /column|does not exist/i.test(m)) m = 'the `plot` column is missing \u2014 run the SQL.';
+        else if (/pdf_url/i.test(m)) m = 'the `pdf_url` column is missing \u2014 run the SQL.';
         msg.textContent = m ? ('Could not save: ' + m) : 'Could not save \u2014 is the projects table set up?';
       });
     }
@@ -7327,12 +7296,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     function ensurePlotModal() {
       if (plotModal) return plotModal;
       var o = document.createElement('div'); o.className = 'mplot-overlay'; o.id = 'mplot-overlay'; o.setAttribute('aria-hidden', 'true');
-      o.innerHTML =
-        '<div class="mplot-panel"><button type="button" class="mplot-close" aria-label="Close">\u00d7</button>' +
-        '<div class="mplot-eyebrow">project results</div><h2 class="mplot-title" id="mplot-title">Results</h2>' +
-        '<div class="mplot-controls" id="mplot-controls"></div>' +
-        '<div class="mplot-body" id="mplot-body"></div>' +
-        '<div class="mplot-note" id="mplot-note"></div></div>';
+      o.innerHTML = '<div class="mplot-panel"><button type="button" class="mplot-close" aria-label="Close">\u00d7</button><div class="mplot-eyebrow">project results</div><h2 class="mplot-title" id="mplot-title">Results</h2><div class="mplot-controls" id="mplot-controls"></div><div class="mplot-body" id="mplot-body"></div><div class="mplot-note" id="mplot-note"></div></div>';
       document.body.appendChild(o);
       o.querySelector('.mplot-close').addEventListener('click', closePlot);
       o.addEventListener('click', function (e) { if (e.target === o) closePlot(); });
@@ -7341,20 +7305,14 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     }
     function closePlot() { if (plotModal) { plotModal.classList.remove('is-open'); plotModal.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; } }
     function openPlot(spec, p) {
-      if (!window.MeyanaPlot) return;
-      var s = asObj(spec); if (!s) return;
-      ensurePlotModal();
-      plotModal.querySelector('#mplot-title').textContent = ((p.title_accent || '') + (p.title_rest || '')).trim() || 'Project results';
+      if (!window.MeyanaPlot) return; var s = asObj(spec); if (!s) return; ensurePlotModal();
+      plotModal.querySelector('#mplot-title').textContent = titleOf(p);
       var controls = plotModal.querySelector('#mplot-controls'), body = plotModal.querySelector('#mplot-body'), note = plotModal.querySelector('#mplot-note');
       controls.innerHTML = ''; note.textContent = '';
       if (s.mode === 'compute') {
         note.innerHTML = 'Live response of G(s) = num / den. Edit the coefficients to recompute.';
         var st = { num: (s.num || []).join(', '), den: (s.den || []).join(', '), kind: s.kind || 'step', tEnd: s.tEnd || 5, xlabel: s.xlabel, ylabel: s.ylabel };
-        controls.innerHTML =
-          '<label>numerator<input id="mp-num" value="' + esc(st.num) + '"></label>' +
-          '<label>denominator<input id="mp-den" value="' + esc(st.den) + '"></label>' +
-          '<label>response<select id="mp-kind"><option value="step"' + (st.kind === 'step' ? ' selected' : '') + '>step</option><option value="impulse"' + (st.kind === 'impulse' ? ' selected' : '') + '>impulse</option></select></label>' +
-          '<label>span (s)<input id="mp-tend" value="' + esc(st.tEnd) + '" style="width:70px"></label>';
+        controls.innerHTML = '<label>numerator<input id="mp-num" value="' + esc(st.num) + '"></label><label>denominator<input id="mp-den" value="' + esc(st.den) + '"></label><label>response<select id="mp-kind"><option value="step"' + (st.kind === 'step' ? ' selected' : '') + '>step</option><option value="impulse"' + (st.kind === 'impulse' ? ' selected' : '') + '>impulse</option></select></label><label>span (s)<input id="mp-tend" value="' + esc(st.tEnd) + '" style="width:70px"></label>';
         var recompute = function () {
           var num = parseNums(controls.querySelector('#mp-num').value), den = parseNums(controls.querySelector('#mp-den').value);
           var kind = controls.querySelector('#mp-kind').value, tEnd = parseFloat(controls.querySelector('#mp-tend').value) || 5;
@@ -7364,9 +7322,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         };
         Array.prototype.slice.call(controls.querySelectorAll('input,select')).forEach(function (i) { i.addEventListener('input', recompute); i.addEventListener('change', recompute); });
         plotChart = null; recompute();
-      } else {
-        plotChart = window.MeyanaPlot.makeChart(body, { series: s.series || [], xlabel: s.xlabel, ylabel: s.ylabel });
-      }
+      } else { plotChart = window.MeyanaPlot.makeChart(body, { series: s.series || [], xlabel: s.xlabel, ylabel: s.ylabel }); }
       plotModal.classList.add('is-open'); plotModal.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
     }
 
@@ -7375,22 +7331,13 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       var st = document.createElement('style');
       st.textContent =
         '#admin-add{margin-top:22px;border:1px solid var(--rule);background:var(--paper);padding:20px;}' +
-        '#admin-add .aconfig{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:0 0 16px;margin-bottom:16px;border-bottom:1px solid var(--rule);}' +
-        '#admin-add .acfg-l{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);}' +
-        '#admin-add .acfg-h{font-family:var(--sans);font-size:11.5px;color:var(--ink-3);flex:1 1 200px;}' +
-        '#admin-add .vtoggle{appearance:none;cursor:pointer;border:1px solid var(--rule);background:var(--paper-2);color:var(--ink-2);font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:7px 12px;}' +
-        '#admin-add .vtoggle.is-on{border-color:var(--accent);background:color-mix(in oklch,var(--accent) 12%,var(--paper));color:var(--accent-ink);}' +
-        '#admin-add .vtoggle:disabled{opacity:.5;}' +
         '#admin-add .ahead{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;}' +
         '#admin-add .asub{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 8px;}' +
-        '#admin-add .asub span{text-transform:none;letter-spacing:0;color:var(--ink-3);}' +
+        '#admin-add .asub span{text-transform:none;letter-spacing:0;}' +
         '#admin-add input,#admin-add textarea,#admin-add select{appearance:none;width:100%;border:1px solid var(--rule);background:var(--paper-2);padding:10px 12px;font-family:var(--mono);font-size:13px;color:var(--ink);outline:none;margin-bottom:10px;box-sizing:border-box;}' +
-        '#admin-add textarea{font-family:var(--sans);min-height:72px;resize:vertical;}' +
-        '#admin-add input[type=file]{font-family:var(--sans);padding:8px;}' +
+        '#admin-add textarea{font-family:var(--sans);min-height:72px;resize:vertical;}#admin-add input[type=file]{font-family:var(--sans);padding:8px;}' +
         '#admin-add input:focus,#admin-add textarea:focus,#admin-add select:focus{border-color:var(--accent);}' +
-        '#admin-add .arow{display:grid;grid-template-columns:90px 1fr;gap:10px;}' +
-        '#admin-add .arow3{display:grid;grid-template-columns:1fr 1fr;gap:10px;}' +
-        '#admin-add .aplotbox{margin-bottom:2px;}' +
+        '#admin-add .arow{display:grid;grid-template-columns:90px 1fr;gap:10px;}#admin-add .arow3{display:grid;grid-template-columns:1fr 1fr;gap:10px;}' +
         '#admin-add .achecks{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-bottom:10px;}' +
         '#admin-add .achecks label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);background:var(--paper-2);padding:7px 11px;cursor:pointer;}' +
         '#admin-add .achecks input{width:auto;margin:0;accent-color:var(--accent);}' +
@@ -7398,34 +7345,32 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         '#admin-add .asave{appearance:none;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:11px 20px;}' +
         '#admin-add .asave:hover{background:var(--accent);border-color:var(--accent);}#admin-add .asave:disabled{opacity:.55;cursor:default;}' +
         '#admin-add .acancel{appearance:none;cursor:pointer;border:1px solid var(--rule);background:var(--paper-2);color:var(--ink-2);font-family:var(--mono);font-size:11px;padding:10px 14px;}' +
-        '#admin-add .amsg{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:8px;min-height:1em;}' +
-        '#admin-add .amsg.ok{color:var(--good);}#admin-add .amsg.err{color:oklch(0.55 0.20 28);}' +
-        '.proj-extra{display:flex;flex-wrap:wrap;gap:10px;margin-top:-2px;}' +
+        '#admin-add .amsg{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:8px;min-height:1em;}#admin-add .amsg.ok{color:var(--good);}#admin-add .amsg.err{color:oklch(0.55 0.20 28);}' +
+        '.proj-extra{display:flex;flex-wrap:wrap;gap:10px;margin-top:-2px;margin-bottom:2px;}' +
         '.proj-link{appearance:none;cursor:pointer;background:transparent;border:0;padding:0;font-family:var(--mono);font-size:11.5px;color:var(--accent-ink);text-decoration:none;border-bottom:1px solid color-mix(in oklch,var(--accent) 40%,transparent);}' +
         '.proj-link:hover{color:var(--accent);}' +
         '.proj-views{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-left:auto;align-self:center;}' +
-        '.proj-admin{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--rule);}' +
+        '.proj-admin{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--rule);}' +
         '.pa-btn{appearance:none;cursor:pointer;border:1px solid var(--rule);background:var(--paper-2);color:var(--ink-2);font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;padding:5px 10px;}' +
-        '.pa-btn:hover{border-color:var(--accent);color:var(--accent-ink);}.pa-btn:disabled{opacity:.5;}' +
-        '.pa-del:hover{border-color:oklch(0.55 0.20 28);color:oklch(0.55 0.20 28);}' +
+        '.pa-btn:hover{border-color:var(--accent);color:var(--accent-ink);}.pa-del:hover{border-color:oklch(0.55 0.20 28);color:oklch(0.55 0.20 28);}' +
         '.pa-note{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);}' +
+        '.pv-check{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--ink-2);margin-left:auto;}' +
+        '.pv-check input{width:auto;margin:0;accent-color:var(--accent);cursor:pointer;}' +
         '.mplot-overlay{position:fixed;inset:0;z-index:2200;display:none;background:color-mix(in oklch,var(--ink) 34%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:7vh 20px 20px;overflow:auto;}' +
         '.mplot-overlay.is-open{display:block;}' +
         '.mplot-panel{position:relative;max-width:680px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);box-shadow:0 24px 64px -28px rgba(0,0,0,.55);padding:26px 26px 22px;}' +
-        '.mplot-close{position:absolute;top:12px;right:14px;appearance:none;cursor:pointer;border:0;background:transparent;font-size:24px;line-height:1;color:var(--ink-3);}' +
-        '.mplot-close:hover{color:var(--ink);}' +
+        '.mplot-close{position:absolute;top:12px;right:14px;appearance:none;cursor:pointer;border:0;background:transparent;font-size:24px;line-height:1;color:var(--ink-3);}.mplot-close:hover{color:var(--ink);}' +
         '.mplot-eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);}' +
         '.mplot-title{font-family:var(--serif);font-weight:600;font-size:22px;margin:4px 0 14px;color:var(--ink);}' +
         '.mplot-controls{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;}' +
         '.mplot-controls label{display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);}' +
         '.mplot-controls input,.mplot-controls select{appearance:none;border:1px solid var(--rule);background:var(--paper-2);padding:7px 9px;font-family:var(--mono);font-size:12px;color:var(--ink);outline:none;}' +
         '.mplot-controls input:focus,.mplot-controls select:focus{border-color:var(--accent);}' +
-        '.mplot-body{border:1px solid var(--rule);background:var(--paper-2);}' +
-        '.mplot-svg{display:block;width:100%;height:auto;}' +
+        '.mplot-body{border:1px solid var(--rule);background:var(--paper-2);}.mplot-svg{display:block;width:100%;height:auto;}' +
         '.mplot-legend{display:flex;flex-wrap:wrap;gap:14px;padding:8px 12px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:11px;color:var(--ink-2);}' +
         '.mplot-chip{display:inline-flex;align-items:center;gap:6px;}.mplot-chip i{width:14px;height:3px;display:inline-block;}' +
         '.mplot-note{font-family:var(--sans);font-size:12px;color:var(--ink-3);margin-top:10px;}' +
-        '[dir="rtl"] .proj-views{margin-left:0;margin-right:auto;}';
+        '[dir="rtl"] .proj-views,[dir="rtl"] .pv-check{margin-left:0;margin-right:auto;}';
       document.head.appendChild(st);
     })();
 
@@ -7434,17 +7379,18 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       if (!sb || !sb.auth || !sb.auth.getUser) return;
       Promise.resolve(sb.auth.getUser()).then(function (u) {
         var em = u && u.data && u.data.user && u.data.user.email;
-        var nowAdmin = !!(em && String(em).toLowerCase() === ADMIN_EMAIL);
-        var changed = nowAdmin !== isAdmin;
-        isAdmin = nowAdmin; showAdmin(isAdmin);
-        if (changed) renderAll();
+        var now = !!(em && String(em).toLowerCase() === ADMIN_EMAIL);
+        var changed = now !== isAdmin; isAdmin = now; showAdmin(isAdmin); if (changed) renderAll();
       }).catch(function () { });
     }
     if (sb && sb.auth && sb.auth.onAuthStateChange) { try { sb.auth.onAuthStateChange(function () { checkAdmin(); }); } catch (e) { } }
-    loadConfig(function () { load(); });
+    loadViews(function () { load(); });
     checkAdmin();
+    // first paint of built-in cards (details + any public counts) even before DB returns
+    renderAll();
   } catch (e) { /* never break the page */ }
 })();
+
 </script>
 
 <!-- ===== real-time gimbal simulation (replaces the faked curves) ===== -->
@@ -7842,35 +7788,32 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
 
 </script>
 <script>
-/* ===== Meyana · inline page editor =====================================
-   Owner signs in -> a floating "Edit page" button appears. In edit mode any
-   text on the page (hero, "on the bench", section intros, the project cards,
-   and -- via hooks -- the notes and the build log) becomes directly editable;
-   changes autosave to the content_overrides table and are re-applied for every
-   visitor on load. Main-page text is stored per language; notes / build log are
-   stored once (they are not translated). No "import" step needed to edit text.
-   Wrapped so any missing table / offline state silently leaves the page as-is. */
+/* ===== Meyana · inline page editor + project details =====================
+   Owner signs in -> "Edit page" button (bottom-right). In edit mode a toolbar
+   (bold / italic / underline / colour / size / heading / list / line / link)
+   appears, and EVERY piece of text becomes directly editable: the page, the
+   "on the bench" line, the notes, the build log, the featured study, and a
+   per-project details page (blank ones start as an empty page you can write
+   in). Changes autosave to content_overrides and re-apply for every visitor.
+   Page text is stored per language; notes / study / details are stored once.
+   Wrapped so any missing table / offline state leaves the page as-is. */
 (function () {
   try {
     var M = window.__MEYANA || {};
     var sb = M.sb || null;
     var ADMIN_EMAIL = 'us3roffline@gmail.com';
-    var overrides = {};            // key -> html
+    var overrides = {};
     var isOwner = false, editMode = false;
-    var btn = null, bar = null, toastEl = null;
+    var btn = null, bar = null, toastEl = null, pd = null;
 
     function curLang() { return document.documentElement.lang || 'en'; }
-
-    // ---- which page elements are directly editable ----
     function excluded(el) {
       return el.matches('a, button') || el.matches('[data-i18n-attr]') ||
         el.closest('#search-overlay') || el.closest('#admin-add') || el.closest('.proj-admin') || el.closest('.langs');
     }
     function mainEditables() {
       var out = [];
-      Array.prototype.forEach.call(document.querySelectorAll('[data-i18n], [data-edit-key]'), function (el) {
-        if (!excluded(el)) out.push(el);
-      });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-i18n], [data-edit-key]'), function (el) { if (!excluded(el)) out.push(el); });
       return out;
     }
     function keyFor(el) {
@@ -7880,7 +7823,6 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     }
     function getOverride(k) { return (overrides[k] != null) ? overrides[k] : null; }
 
-    // ---- apply overrides to main content for the current language ----
     function applyMain() {
       mainEditables().forEach(function (el) {
         var k = keyFor(el);
@@ -7889,7 +7831,6 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       if (editMode) decorate(true);
     }
 
-    // ---- fetch / save ----
     function fetchOverrides(cb) {
       if (!sb) { if (cb) cb(); return; }
       Promise.resolve(sb.from('content_overrides').select('key, html')).then(function (res) {
@@ -7920,6 +7861,7 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       el.__last = el.innerHTML;
       el.addEventListener('mousedown', function (e) { if (editMode) e.stopPropagation(); }, true);
       el.addEventListener('click', function (e) { if (editMode) e.stopPropagation(); }, true);
+      el.addEventListener('focus', function () { activeEl = el; });
       el.addEventListener('keydown', function (e) {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); el.blur(); }
         if (e.key === 'Enter' && !e.shiftKey && /^H[1-6]$/.test(el.tagName)) { e.preventDefault(); el.blur(); }
@@ -7932,21 +7874,91 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     function unmakeEditable(el) { el.setAttribute('contenteditable', 'false'); el.classList.remove('m-editing'); }
     function decorate(on) { mainEditables().forEach(function (el) { if (on) makeEditable(el); else unmakeEditable(el); }); }
 
-    // ---- notes / build log (rendered from JS, bound when opened) ----
+    // ---- containers rendered from JS (notes, feed, details) ----
     function bindContainer(el, key) {
       if (!el) return;
       if (overrides[key] != null && el.innerHTML !== overrides[key]) el.innerHTML = overrides[key];
       if (editMode) { makeEditable(el, function () { return key; }); el.__last = el.innerHTML; }
     }
+    // ---- featured study: per-prose-element so the plots/bars are never touched ----
+    function bindStudy(scope) {
+      if (!scope) return;
+      var els = scope.querySelectorAll('h2, h3, h4, h5, h6, p, li');
+      Array.prototype.forEach.call(els, function (el, i) {
+        var key = 'study::n' + i;
+        if (overrides[key] != null && el.innerHTML !== overrides[key]) el.innerHTML = overrides[key];
+        if (editMode) { makeEditable(el, function () { return key; }); el.__last = el.innerHTML; }
+      });
+    }
     function rebindOpen() {
-      var nb = document.getElementById('note-body'), nt = document.getElementById('note-title');
-      var no = document.getElementById('note-overlay'), fl = document.getElementById('feed-list');
+      var no = document.getElementById('note-overlay');
       if (no && no.classList.contains('is-open') && no.dataset.noteKey) {
-        if (nb) { makeEditable(nb, function () { return 'note::' + no.dataset.noteKey + '::body'; }); nb.__last = nb.innerHTML; }
+        var nb = document.getElementById('note-body'), nt = document.getElementById('note-title');
         if (nt) { makeEditable(nt, function () { return 'note::' + no.dataset.noteKey + '::title'; }); nt.__last = nt.innerHTML; }
+        if (nb) { makeEditable(nb, function () { return 'note::' + no.dataset.noteKey + '::body'; }); nb.__last = nb.innerHTML; }
       }
-      var fo = document.getElementById('feed-overlay');
+      var fo = document.getElementById('feed-overlay'), fl = document.getElementById('feed-list');
       if (fo && fo.classList.contains('is-open') && fl) { makeEditable(fl, function () { return 'feed::list'; }); fl.__last = fl.innerHTML; }
+      var so = document.getElementById('study-overlay');
+      if (so && so.classList.contains('is-open')) bindStudy(so.querySelector('.study-body'));
+      if (pd && pd.overlay.classList.contains('is-open') && pd.body.dataset.pdKey) { makeEditable(pd.body, function () { return 'proj::' + pd.body.dataset.pdKey + '::page'; }); pd.body.__last = pd.body.innerHTML; }
+    }
+
+    // ---- universal project details modal ----
+    function ensurePD() {
+      if (pd) return pd;
+      var o = document.createElement('div'); o.className = 'pd-overlay'; o.id = 'pd-overlay'; o.setAttribute('aria-hidden', 'true');
+      o.innerHTML = '<div class="pd-panel"><button type="button" class="pd-close" aria-label="Close">\u00d7</button>' +
+        '<div class="pd-eyebrow">project \u00b7 details</div><h2 class="pd-title" id="pd-title">Project</h2>' +
+        '<div class="pd-body" id="pd-body"></div></div>';
+      document.body.appendChild(o);
+      var close = function () { o.classList.remove('is-open'); o.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; };
+      o.querySelector('.pd-close').addEventListener('click', close);
+      o.addEventListener('click', function (e) { if (e.target === o) close(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && o.classList.contains('is-open')) close(); });
+      pd = { overlay: o, title: o.querySelector('#pd-title'), body: o.querySelector('#pd-body'), close: close };
+      return pd;
+    }
+    function openDetails(key, title) {
+      ensurePD();
+      var ov = overrides['proj::' + key + '::page'];
+      pd.title.textContent = title || 'Project';
+      if (ov != null && ov.trim() !== '') pd.body.innerHTML = ov;
+      else pd.body.innerHTML = editMode ? '' : '<p class="pd-empty">No details written yet.</p>';
+      pd.body.dataset.pdKey = key;
+      if (editMode) { makeEditable(pd.body, function () { return 'proj::' + key + '::page'; }); pd.body.__last = pd.body.innerHTML; }
+      pd.overlay.classList.add('is-open'); pd.overlay.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+    }
+
+    // ---- formatting toolbar (execCommand on the focused editable) ----
+    var activeEl = null;
+    function exec(cmd, val) {
+      try { if (activeEl && document.activeElement !== activeEl) activeEl.focus(); document.execCommand(cmd, false, val || null); } catch (e) { }
+    }
+    function toolBtn(label, title, fn) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'm-tool'; b.title = title; b.innerHTML = label;
+      b.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      b.addEventListener('click', function (e) { e.preventDefault(); fn(); });
+      return b;
+    }
+    function buildToolbar(host) {
+      var t = document.createElement('div'); t.id = 'm-tools';
+      t.appendChild(toolBtn('<b>B</b>', 'Bold', function () { exec('bold'); }));
+      t.appendChild(toolBtn('<i>I</i>', 'Italic', function () { exec('italic'); }));
+      t.appendChild(toolBtn('<u>U</u>', 'Underline', function () { exec('underline'); }));
+      t.appendChild(toolBtn('H', 'Heading', function () { exec('formatBlock', 'H3'); }));
+      t.appendChild(toolBtn('\u00b6', 'Normal text', function () { exec('formatBlock', 'P'); }));
+      t.appendChild(toolBtn('&bull;', 'Bullet list', function () { exec('insertUnorderedList'); }));
+      t.appendChild(toolBtn('A+', 'Bigger', function () { exec('fontSize', '5'); }));
+      t.appendChild(toolBtn('A\u2212', 'Smaller', function () { exec('fontSize', '2'); }));
+      ['#c0392b', '#1f6feb', '#16794a', '#b8860b'].forEach(function (c) {
+        var s = toolBtn('', 'Colour', function () { exec('foreColor', c); }); s.className = 'm-tool m-swatch'; s.style.background = c; t.appendChild(s);
+      });
+      t.appendChild(toolBtn('A', 'Default colour', function () { exec('foreColor', getComputedStyle(document.body).getPropertyValue('--ink') || '#1a1a1a'); }));
+      t.appendChild(toolBtn('\u2014', 'Insert a line', function () { exec('insertHorizontalRule'); }));
+      t.appendChild(toolBtn('\u{1f517}', 'Link', function () { var u = window.prompt('Link URL:'); if (u) exec('createLink', u); }));
+      t.appendChild(toolBtn('\u2715', 'Clear formatting', function () { exec('removeFormat'); }));
+      host.appendChild(t);
     }
 
     // ---- edit-mode toggle ----
@@ -7956,10 +7968,9 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       decorate(on);
       if (on) rebindOpen();
       if (btn) { btn.textContent = on ? 'Done editing' : 'Edit page'; btn.classList.toggle('is-on', on); }
-      if (bar) { bar.style.display = on ? '' : 'none'; bar.firstChild && (bar.firstChild.textContent = 'Editing in ' + curLang().toUpperCase() + ' — click any text and type; it saves on its own. Switch the site language to edit the other versions.'); }
+      if (bar) { bar.style.display = on ? '' : 'none'; var lbl = bar.querySelector('.m-edit-lbl'); if (lbl) lbl.textContent = 'Editing ' + curLang().toUpperCase() + ' \u2014 click any text, or a project\u2019s "details \u25b8", and type.'; }
     }
 
-    // ---- floating UI (owner only) ----
     function buildUI() {
       if (btn) return;
       injectCss();
@@ -7968,7 +7979,8 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       btn.addEventListener('click', function () { setEdit(!editMode); });
       document.body.appendChild(btn);
       bar = document.createElement('div'); bar.id = 'm-edit-bar'; bar.style.display = 'none';
-      var span = document.createElement('span'); span.textContent = 'Editing.'; bar.appendChild(span);
+      buildToolbar(bar);
+      var lbl = document.createElement('span'); lbl.className = 'm-edit-lbl'; lbl.textContent = 'Editing.'; bar.appendChild(lbl);
       var done = document.createElement('button'); done.id = 'm-edit-done'; done.type = 'button'; done.textContent = 'Done';
       done.addEventListener('click', function () { setEdit(false); }); bar.appendChild(done);
       document.body.appendChild(bar);
@@ -7983,21 +7995,34 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
       var s = document.createElement('style');
       s.textContent =
         '#m-edit-btn{position:fixed;right:18px;bottom:18px;z-index:3000;appearance:none;cursor:pointer;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font-family:var(--mono,monospace);font-size:12px;letter-spacing:.04em;padding:10px 16px;box-shadow:0 8px 24px -10px rgba(0,0,0,.5);}' +
-        '#m-edit-btn:hover{background:var(--ink);color:var(--paper);}' +
-        '#m-edit-btn.is-on{background:var(--accent);border-color:var(--accent);color:var(--paper);}' +
-        '#m-edit-bar{position:fixed;left:0;right:0;bottom:0;z-index:2990;display:flex;align-items:center;gap:14px;background:var(--ink);color:var(--paper);font-family:var(--mono,monospace);font-size:12px;line-height:1.5;padding:11px 18px;}' +
-        '#m-edit-bar span{flex:1;}' +
+        '#m-edit-btn:hover{background:var(--ink);color:var(--paper);}#m-edit-btn.is-on{background:var(--accent);border-color:var(--accent);color:var(--paper);}' +
+        '#m-edit-bar{position:fixed;left:0;right:0;bottom:0;z-index:2990;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--ink);color:var(--paper);font-family:var(--mono,monospace);font-size:12px;padding:9px 16px;}' +
+        '#m-edit-bar .m-edit-lbl{flex:1;min-width:140px;opacity:.85;}' +
+        '#m-tools{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}' +
+        '.m-tool{appearance:none;cursor:pointer;min-width:28px;height:28px;padding:0 7px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:var(--paper);font-family:var(--mono,monospace);font-size:13px;line-height:1;display:inline-flex;align-items:center;justify-content:center;border-radius:3px;}' +
+        '.m-tool:hover{background:rgba(255,255,255,.18);}' +
+        '.m-swatch{width:22px;min-width:22px;padding:0;border-color:rgba(255,255,255,.5);}' +
         '#m-edit-done{appearance:none;cursor:pointer;border:1px solid var(--paper);background:transparent;color:var(--paper);font-family:var(--mono,monospace);font-size:11px;padding:6px 14px;}' +
         '#m-edit-done:hover{background:var(--paper);color:var(--ink);}' +
         '.m-edit-on .m-editing{outline:1px dashed color-mix(in oklch,var(--accent) 70%,transparent);outline-offset:3px;cursor:text;border-radius:2px;}' +
         '.m-edit-on .m-editing:hover{background:color-mix(in oklch,var(--accent) 8%,transparent);}' +
         '.m-edit-on .m-editing:focus{outline:2px solid var(--accent);background:color-mix(in oklch,var(--accent) 6%,transparent);}' +
-        '#m-toast{position:fixed;right:18px;bottom:66px;z-index:3001;background:var(--ink);color:var(--paper);font-family:var(--mono,monospace);font-size:11px;padding:7px 12px;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:none;}' +
-        '#m-toast.show{opacity:1;transform:none;}#m-toast.bad{background:oklch(0.55 0.20 28);}';
+        '.m-edit-on #pd-body:empty:before{content:"Click here and start writing the details\u2026";color:var(--ink-3);}' +
+        '#m-toast{position:fixed;right:18px;bottom:70px;z-index:3001;background:var(--ink);color:var(--paper);font-family:var(--mono,monospace);font-size:11px;padding:7px 12px;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:none;}' +
+        '#m-toast.show{opacity:1;transform:none;}#m-toast.bad{background:oklch(0.55 0.20 28);}' +
+        '.pd-overlay{position:fixed;inset:0;z-index:2400;display:none;background:color-mix(in oklch,var(--ink) 34%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:7vh 20px 90px;overflow:auto;}' +
+        '.pd-overlay.is-open{display:block;}' +
+        '.pd-panel{position:relative;max-width:760px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);box-shadow:0 24px 64px -28px rgba(0,0,0,.55);padding:30px 34px 34px;}' +
+        '.pd-close{position:absolute;top:12px;right:14px;appearance:none;cursor:pointer;border:0;background:transparent;font-size:26px;line-height:1;color:var(--ink-3);}.pd-close:hover{color:var(--ink);}' +
+        '.pd-eyebrow{font-family:var(--mono,monospace);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);}' +
+        '.pd-title{font-family:var(--serif,Georgia);font-weight:600;font-size:26px;margin:5px 0 18px;color:var(--ink);line-height:1.2;}' +
+        '.pd-body{font-family:var(--sans);font-size:15.5px;line-height:1.62;color:var(--ink-2);}' +
+        '.pd-body p{margin:0 0 14px;}.pd-body h3{font-family:var(--serif,Georgia);color:var(--ink);font-size:19px;margin:22px 0 10px;}' +
+        '.pd-body hr{border:0;border-top:1px solid var(--rule);margin:20px 0;}.pd-body ul{margin:0 0 14px;padding-left:20px;}.pd-body a{color:var(--accent-ink);}' +
+        '.pd-empty{color:var(--ink-3);font-style:italic;}';
       document.head.appendChild(s);
     }
 
-    // ---- owner check ----
     function checkOwner() {
       if (!sb || !sb.auth || !sb.auth.getUser) return;
       Promise.resolve(sb.auth.getUser()).then(function (u) {
@@ -8009,12 +8034,13 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     }
     if (sb && sb.auth && sb.auth.onAuthStateChange) { try { sb.auth.onAuthStateChange(function () { checkOwner(); }); } catch (e) { } }
 
-    // ---- expose for the i18n / note / feed hooks ----
     window.MeyanaEdit = {
       apply: applyMain,
       get: getOverride,
       editing: function () { return editMode; },
       bindContainer: bindContainer,
+      bindStudy: bindStudy,
+      openDetails: openDetails,
       noteBodyKey: function (k) { return 'note::' + k + '::body'; },
       noteTitleKey: function (k) { return 'note::' + k + '::title'; },
       feedKey: function () { return 'feed::list'; }
