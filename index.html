@@ -6802,12 +6802,188 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
 
 
 <script>
-/* ===== Meyana · dynamic projects + admin add-form (Supabase-backed) =====
+/* =========================================================
+   Meyana — per-project plot engine (dependency-free)
+   window.MeyanaPlot = { tfResponse, parseData, makeChart }
+   - tfResponse: transfer function G=num/den -> step/impulse points
+   - parseData : paste CSV / whitespace columns -> series
+   - makeChart : interactive SVG line chart (hover readout, legend)
+   ========================================================= */
+(function () {
+  'use strict';
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  // ---- transfer-function response via controllable canonical SS + RK4 ----
+  function tfResponse(num, den, type, tEnd) {
+    type = type || 'step'; tEnd = tEnd || 5;
+    num = num.slice(); den = den.slice();
+    var a0 = den[0]; if (!a0) return [];
+    den = den.map(function (v) { return v / a0; });
+    num = num.map(function (v) { return v / a0; });
+    var n = den.length - 1;
+    if (n < 1) return [];
+    var b = new Array(n + 1).fill(0);
+    for (var i = 0; i < num.length; i++) b[n - (num.length - 1) + i] = num[i];
+    var bn = b[0], D = bn;
+    var C = [];
+    for (i = 0; i < n; i++) C.push(b[n - i] - bn * den[n - i]);
+    var aRow = den.slice(1).reverse();   // [a0..a_{n-1}] for x1..xn
+    function dvec(x, u) {
+      var dx = new Array(n);
+      for (var j = 0; j < n - 1; j++) dx[j] = x[j + 1];
+      var s = u; for (var kk = 0; kk < n; kk++) s -= aRow[kk] * x[kk];
+      dx[n - 1] = s; return dx;
+    }
+    var dt = tEnd / 4000, x = new Array(n).fill(0);
+    if (type === 'impulse') x[n - 1] = 1;
+    var pts = [];
+    for (var s2 = 0; s2 <= 4000; s2++) {
+      var t = s2 * dt, u = (type === 'step') ? 1 : 0;
+      var y = D * u; for (i = 0; i < n; i++) y += C[i] * x[i];
+      if (s2 % 13 === 0) pts.push([t, y]);
+      var k1 = dvec(x, u);
+      var k2 = dvec(x.map(function (v, j) { return v + 0.5 * dt * k1[j]; }), u);
+      var k3 = dvec(x.map(function (v, j) { return v + 0.5 * dt * k2[j]; }), u);
+      var k4 = dvec(x.map(function (v, j) { return v + dt * k3[j]; }), u);
+      x = x.map(function (v, j) { return v + dt / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]); });
+    }
+    return pts;
+  }
+
+  // ---- parse pasted numbers: first column = x (or index), rest = series ----
+  function parseData(text) {
+    var rows = String(text || '').trim().split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    var data = [], maxc = 0;
+    rows.forEach(function (l) {
+      if (/[a-df-zA-DF-Z]/.test(l) && !/[eE][+-]?\d/.test(l)) return; // skip header-ish lines
+      var nums = l.split(/[\s,;]+/).map(Number).filter(function (v) { return !isNaN(v); });
+      if (nums.length) { data.push(nums); maxc = Math.max(maxc, nums.length); }
+    });
+    if (!data.length) return [];
+    var hasX = maxc >= 2;
+    var nSeries = hasX ? maxc - 1 : 1;
+    var series = [];
+    for (var s = 0; s < nSeries; s++) {
+      var pts = data.map(function (r, idx) {
+        var xv = hasX ? r[0] : idx;
+        var yv = hasX ? r[s + 1] : r[0];
+        return [xv, yv];
+      }).filter(function (p) { return !isNaN(p[1]); });
+      series.push({ name: 'series ' + (s + 1), points: pts });
+    }
+    return series;
+  }
+
+  // ---- interactive SVG chart ----
+  var PALETTE = ['var(--ink)', 'var(--accent)', 'var(--good)', '#b8732e', '#7a5bd6'];
+  function niceTicks(lo, hi, n) {
+    if (lo === hi) { lo -= 1; hi += 1; }
+    var span = hi - lo, step = Math.pow(10, Math.floor(Math.log(span / n) / Math.LN10));
+    var err = (span / n) / step;
+    if (err >= 7.5) step *= 10; else if (err >= 3.5) step *= 5; else if (err >= 1.5) step *= 2;
+    var ticks = [], t = Math.ceil(lo / step) * step;
+    for (; t <= hi + step * 0.5; t += step) ticks.push(Math.round(t * 1e6) / 1e6);
+    return ticks;
+  }
+  function fmt(v) {
+    if (v === 0) return '0';
+    var a = Math.abs(v);
+    if (a >= 1000 || a < 0.01) return v.toExponential(1);
+    return (Math.round(v * 1000) / 1000).toString();
+  }
+
+  function makeChart(container, spec) {
+    var W = 600, H = 320, padL = 56, padR = 16, padT = 16, padB = 40;
+    var svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('class', 'mplot-svg');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    container.innerHTML = '';
+    container.appendChild(svg);
+    var legend = document.createElement('div');
+    legend.className = 'mplot-legend';
+    container.appendChild(legend);
+
+    function el(name, attrs) { var e = document.createElementNS(SVGNS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+    function draw(spec) {
+      svg.innerHTML = ''; legend.innerHTML = '';
+      var series = (spec.series || []).filter(function (s) { return s.points && s.points.length; });
+      if (!series.length) { svg.appendChild(el('text', { x: W / 2, y: H / 2, 'text-anchor': 'middle', fill: 'var(--ink-3)', 'font-size': 13 })).textContent = 'no data'; return; }
+      var xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+      series.forEach(function (s) { s.points.forEach(function (p) { if (p[0] < xmin) xmin = p[0]; if (p[0] > xmax) xmax = p[0]; if (p[1] < ymin) ymin = p[1]; if (p[1] > ymax) ymax = p[1]; }); });
+      if (ymin === ymax) { ymin -= 1; ymax += 1; }
+      var pad = (ymax - ymin) * 0.08; ymin -= pad; ymax += pad;
+      var X = function (v) { return padL + (v - xmin) / (xmax - xmin || 1) * (W - padL - padR); };
+      var Y = function (v) { return H - padB - (v - ymin) / (ymax - ymin || 1) * (H - padT - padB); };
+
+      // gridlines + ticks
+      niceTicks(ymin, ymax, 5).forEach(function (t) {
+        var y = Y(t);
+        svg.appendChild(el('line', { x1: padL, y1: y, x2: W - padR, y2: y, stroke: 'var(--rule)', 'stroke-width': t === 0 ? 1.2 : 0.6, 'stroke-dasharray': t === 0 ? '' : '2 3' }));
+        var tx = el('text', { x: padL - 7, y: y + 3.5, 'text-anchor': 'end', fill: 'var(--ink-3)', 'font-size': 10, 'font-family': 'var(--mono)' }); tx.textContent = fmt(t); svg.appendChild(tx);
+      });
+      niceTicks(xmin, xmax, 6).forEach(function (t) {
+        var x = X(t);
+        svg.appendChild(el('line', { x1: x, y1: padT, x2: x, y2: H - padB, stroke: 'var(--rule)', 'stroke-width': 0.6, 'stroke-dasharray': '2 3' }));
+        var tx = el('text', { x: x, y: H - padB + 14, 'text-anchor': 'middle', fill: 'var(--ink-3)', 'font-size': 10, 'font-family': 'var(--mono)' }); tx.textContent = fmt(t); svg.appendChild(tx);
+      });
+      // axis labels
+      if (spec.xlabel) { var xl = el('text', { x: (padL + W - padR) / 2, y: H - 4, 'text-anchor': 'middle', fill: 'var(--ink-2)', 'font-size': 10.5, 'font-family': 'var(--mono)' }); xl.textContent = spec.xlabel; svg.appendChild(xl); }
+      if (spec.ylabel) { var yl = el('text', { x: 12, y: (padT + H - padB) / 2, 'text-anchor': 'middle', fill: 'var(--ink-2)', 'font-size': 10.5, 'font-family': 'var(--mono)', transform: 'rotate(-90 12 ' + ((padT + H - padB) / 2) + ')' }); yl.textContent = spec.ylabel; svg.appendChild(yl); }
+
+      // series paths
+      series.forEach(function (s, i) {
+        var col = s.color || PALETTE[i % PALETTE.length];
+        var d = 'M'; s.points.forEach(function (p, k) { d += (k ? 'L' : '') + (Math.round(X(p[0]) * 10) / 10) + ',' + (Math.round(Y(p[1]) * 10) / 10); });
+        svg.appendChild(el('path', { d: d, fill: 'none', stroke: col, 'stroke-width': 1.8, 'stroke-linejoin': 'round' }));
+        var chip = document.createElement('span'); chip.className = 'mplot-chip';
+        chip.innerHTML = '<i style="background:' + col + '"></i>' + (s.name || ('series ' + (i + 1)));
+        legend.appendChild(chip);
+      });
+
+      // hover layer
+      var hv = el('line', { x1: 0, y1: padT, x2: 0, y2: H - padB, stroke: 'var(--accent)', 'stroke-width': 1, opacity: 0 });
+      var lbl = el('text', { x: 0, y: padT + 12, fill: 'var(--ink)', 'font-size': 10.5, 'font-family': 'var(--mono)', opacity: 0 });
+      svg.appendChild(hv); svg.appendChild(lbl);
+      var rect = el('rect', { x: padL, y: padT, width: W - padL - padR, height: H - padT - padB, fill: 'transparent' });
+      svg.appendChild(rect);
+      function onMove(ev) {
+        var r = svg.getBoundingClientRect();
+        var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX);
+        var px = (cx - r.left) / r.width * W;
+        var xv = xmin + (px - padL) / (W - padL - padR) * (xmax - xmin);
+        hv.setAttribute('x1', px); hv.setAttribute('x2', px); hv.setAttribute('opacity', 0.7);
+        var parts = [fmt(xv)];
+        series.forEach(function (s) {
+          var best = s.points[0], bd = Infinity;
+          s.points.forEach(function (p) { var dd = Math.abs(p[0] - xv); if (dd < bd) { bd = dd; best = p; } });
+          parts.push(fmt(best[1]));
+        });
+        lbl.textContent = parts.join('  ·  ');
+        lbl.setAttribute('x', Math.min(px + 6, W - 150)); lbl.setAttribute('opacity', 1);
+      }
+      function onLeave() { hv.setAttribute('opacity', 0); lbl.setAttribute('opacity', 0); }
+      rect.addEventListener('mousemove', onMove);
+      rect.addEventListener('mouseleave', onLeave);
+      rect.addEventListener('touchmove', function (e) { onMove(e); });
+    }
+
+    draw(spec);
+    return { update: draw };
+  }
+
+  window.MeyanaPlot = { tfResponse: tfResponse, parseData: parseData, makeChart: makeChart };
+})();
+/* ===== Meyana · dynamic projects + admin (Supabase-backed) =====
    Reads projects from the `projects` table and appends them to the grid.
-   When the admin account is signed in, an "Add project" form appears that
-   writes straight to the table — no HTML editing. Everything is wrapped so a
-   missing table / offline / logged-out state silently leaves the static
-   cards untouched. */
+   Admin (signed-in owner) gets: add / edit / delete, a PDF report per
+   project (paste URL or upload to Storage), a per-project view counter with
+   a show/hide toggle, and a per-project results plot (computed live from a
+   transfer function, or charted from pasted data). Everything is wrapped so
+   a missing table / column / bucket / offline state silently leaves the
+   static cards untouched. New columns expected: pdf_url, views, show_views,
+   plot (see the setup guide). */
 (function () {
   try {
     var M = window.__MEYANA || {};
@@ -6817,108 +6993,360 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     var grid = sec && sec.querySelector('.grid');
     if (!sec || !grid) return;
 
-    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-    function chipHtml(chips){
-      return String(chips||'').split(',').map(function(t){return t.trim();}).filter(Boolean)
-        .map(function(t,i){return '<span class="tag'+(i===0?' is-accent':'')+'">'+esc(t)+'</span>';}).join('');
+    var isAdmin = false, editingId = null, loaded = [], panel = null;
+    var SESSION_KEY = 'meyana_viewed';
+
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function chipHtml(chips) {
+      return String(chips || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean)
+        .map(function (t, i) { return '<span class="tag' + (i === 0 ? ' is-accent' : '') + '">' + esc(t) + '</span>'; }).join('');
     }
-    function cardEl(p){
-      var art=document.createElement('article');
-      art.className='card';
-      art.setAttribute('data-tags',(String(p.tags||'').trim())||'control');
-      if(p.id) art.setAttribute('data-db-id',p.id);
-      var title=(p.title_accent?'<span class="accent">'+esc(p.title_accent)+'</span>':'')+esc(p.title_rest||'');
-      art.innerHTML=
-        '<div class="row1"><span class="num">'+esc(p.num?('\u2116 '+p.num):'\u2116')+'</span><span>'+esc(p.meta||'')+'</span></div>'+
-        '<h4>'+title+'</h4>'+
-        '<p>'+esc(p.descr||'')+'</p>'+
-        '<div class="tags">'+chipHtml(p.chips)+'</div>';
+    function parseNums(s) { return String(s || '').split(/[\s,;]+/).map(Number).filter(function (v) { return !isNaN(v); }); }
+    function asObj(v) { if (!v) return null; if (typeof v === 'string') { try { return JSON.parse(v); } catch (e) { return null; } } return v; }
+
+    // ---------- view counting (deduped per browser session) ----------
+    function viewed() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch (e) { return []; } }
+    function markViewed(id) { try { var a = viewed(); if (a.indexOf(id) < 0) { a.push(id); sessionStorage.setItem(SESSION_KEY, JSON.stringify(a)); } } catch (e) { } }
+    function bumpView(p) {
+      var base = p.views || 0;
+      if (!sb || !p.id) return base;
+      if (viewed().indexOf(p.id) >= 0) return base;
+      markViewed(p.id);
+      try {
+        Promise.resolve(sb.rpc('increment_project_view', { pid: String(p.id) })).catch(function () {
+          try { sb.from('projects').update({ views: base + 1 }).eq('id', p.id); } catch (e) { }
+        });
+      } catch (e) { }
+      return base + 1;
+    }
+
+    // ---------- card ----------
+    function cardEl(p) {
+      var art = document.createElement('article');
+      art.className = 'card';
+      art.setAttribute('data-tags', (String(p.tags || '').trim()) || 'control');
+      if (p.id) art.setAttribute('data-db-id', p.id);
+      var title = (p.title_accent ? '<span class="accent">' + esc(p.title_accent) + '</span>' : '') + esc(p.title_rest || '');
+      var views = bumpView(p);
+      var plot = asObj(p.plot);
+      var extra = '';
+      if (p.pdf_url) extra += '<a class="proj-link" href="' + esc(p.pdf_url) + '" target="_blank" rel="noopener">PDF report \u2197</a>';
+      if (plot) extra += '<button type="button" class="proj-link proj-plot" data-plot>Results \u25b8</button>';
+      var badge = p.show_views ? '<span class="proj-views">read ' + views + (views === 1 ? ' time' : ' times') + '</span>' : '';
+      art.innerHTML =
+        '<div class="row1"><span class="num">' + esc(p.num ? ('\u2116 ' + p.num) : '\u2116') + '</span><span>' + esc(p.meta || '') + '</span></div>' +
+        '<h4>' + title + '</h4>' +
+        '<p>' + esc(p.descr || '') + '</p>' +
+        (extra ? '<div class="proj-extra">' + extra + '</div>' : '') +
+        '<div class="tags">' + chipHtml(p.chips) + badge + '</div>';
+      if (plot) { var pb = art.querySelector('[data-plot]'); if (pb) pb.addEventListener('click', function () { openPlot(plot, p); }); }
+      if (isAdmin && p.id) art.appendChild(adminBar(p, art));
       return art;
     }
-    function refilter(){ var a=document.querySelector('#filters button.is-on'); if(a) a.click(); }
 
-    function load(){
-      if(!sb) return;
-      Promise.resolve(sb.from('projects').select('*').order('sort',{ascending:true})).then(function(res){
-        if(!res||res.error||!res.data||!res.data.length) return;
-        res.data.forEach(function(p){ grid.appendChild(cardEl(p)); });
-        refilter();
-      }).catch(function(){});
+    function adminBar(p, art) {
+      var bar = document.createElement('div'); bar.className = 'proj-admin';
+      function mk(txt, cls, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'pa-btn' + (cls ? ' ' + cls : ''); b.textContent = txt; b.addEventListener('click', fn); return b; }
+      bar.appendChild(mk('edit', '', function () { fillForm(p); }));
+      bar.appendChild(mk(p.show_views ? 'views: shown' : 'views: hidden', '', function (e) { toggleViews(p, e.target, art); }));
+      bar.appendChild(mk('delete', 'pa-del', function () { delProject(p, art); }));
+      return bar;
+    }
+    function toggleViews(p, btn, art) {
+      if (!sb) return; var nv = !p.show_views; btn.disabled = true;
+      Promise.resolve(sb.from('projects').update({ show_views: nv }).eq('id', p.id)).then(function (res) {
+        btn.disabled = false; if (res && res.error) throw res.error;
+        p.show_views = nv; btn.textContent = nv ? 'views: shown' : 'views: hidden';
+        var tags = art.querySelector('.tags'); var old = tags && tags.querySelector('.proj-views'); if (old) old.remove();
+        if (nv && tags) { var s = document.createElement('span'); s.className = 'proj-views'; var v = p.views || 0; s.textContent = 'read ' + v + (v === 1 ? ' time' : ' times'); tags.appendChild(s); }
+      }).catch(function () { btn.disabled = false; });
+    }
+    function delProject(p, art) {
+      if (!sb) return;
+      if (!window.confirm('Delete this project? This cannot be undone.')) return;
+      Promise.resolve(sb.from('projects').delete().eq('id', p.id)).then(function (res) {
+        if (res && res.error) throw res.error;
+        loaded = loaded.filter(function (x) { return x.id !== p.id; });
+        art.remove(); refilter();
+        if (editingId === p.id) resetForm();
+      }).catch(function (err) { window.alert((err && err.message) ? ('Could not delete: ' + err.message) : 'Could not delete.'); });
     }
 
-    var panel=null;
-    function ensurePanel(){
-      if(panel) return panel;
-      var st=document.createElement('style');
-      st.textContent=
-        '#admin-add{margin-top:22px;border:1px solid var(--rule);background:var(--paper);padding:20px;}'+
-        '#admin-add .ahead{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;}'+
-        '#admin-add input,#admin-add textarea{appearance:none;width:100%;border:1px solid var(--rule);background:var(--paper-2);padding:10px 12px;font-family:var(--mono);font-size:13px;color:var(--ink);outline:none;margin-bottom:10px;box-sizing:border-box;}'+
-        '#admin-add textarea{font-family:var(--sans);min-height:72px;resize:vertical;}'+
-        '#admin-add input:focus,#admin-add textarea:focus{border-color:var(--accent);}'+
-        '#admin-add .arow{display:grid;grid-template-columns:90px 1fr;gap:10px;}'+
-        '#admin-add .achecks{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-bottom:10px;}'+
-        '#admin-add .achecks label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);background:var(--paper-2);padding:7px 11px;cursor:pointer;}'+
-        '#admin-add .achecks input{width:auto;margin:0;accent-color:var(--accent);}'+
-        '#admin-add .asave{appearance:none;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:11px 20px;}'+
-        '#admin-add .asave:hover{background:var(--accent);border-color:var(--accent);}'+
-        '#admin-add .asave:disabled{opacity:.55;cursor:default;}'+
-        '#admin-add .amsg{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:8px;min-height:1em;}'+
-        '#admin-add .amsg.ok{color:var(--good);}#admin-add .amsg.err{color:oklch(0.55 0.20 28);}';
-      document.head.appendChild(st);
-      var w=document.createElement('div');
-      w.id='admin-add';
-      w.innerHTML=
-        '<div class="ahead">Admin \u00b7 add a project \u2014 saves to your database and appears live</div>'+
-        '<div class="arow"><input id="ap-num" placeholder="05"><input id="ap-meta" placeholder="2024 \u00b7 driver board"></div>'+
-        '<input id="ap-tacc" placeholder="title \u2014 highlighted start (e.g. FOC driver)">'+
-        '<input id="ap-trest" placeholder="title \u2014 the rest (e.g.  \u2014 a 3-phase BLDC board)">'+
-        '<textarea id="ap-descr" placeholder="what it is + the problem it solves"></textarea>'+
-        '<div class="achecks"><label><input type="checkbox" value="control">Control</label>'+
-          '<label><input type="checkbox" value="ai">RL \u00b7 ML</label>'+
-          '<label><input type="checkbox" value="hardware" checked>Hardware</label></div>'+
-        '<input id="ap-chips" placeholder="tags, comma-separated (first one highlighted)">'+
-        '<button class="asave" id="ap-save">Add project \u2192</button>'+
+    function refilter() { var a = document.querySelector('#filters button.is-on'); if (a) a.click(); }
+    function renderAll() {
+      Array.prototype.slice.call(grid.querySelectorAll('[data-db-id]')).forEach(function (n) { n.remove(); });
+      loaded.forEach(function (p) { grid.appendChild(cardEl(p)); });
+      refilter();
+    }
+    function load() {
+      if (!sb) return;
+      Promise.resolve(sb.from('projects').select('*').order('sort', { ascending: true })).then(function (res) {
+        if (!res || res.error || !res.data) return;
+        loaded = res.data; renderAll();
+      }).catch(function () { });
+    }
+
+    // ---------- admin form (add + edit) ----------
+    function ensurePanel() {
+      if (panel) return panel;
+      var w = document.createElement('div');
+      w.id = 'admin-add';
+      w.innerHTML =
+        '<div class="ahead" id="ap-head">Admin \u00b7 add a project \u2014 saves to your database and appears live</div>' +
+        '<div class="arow"><input id="ap-num" placeholder="05"><input id="ap-meta" placeholder="2024 \u00b7 driver board"></div>' +
+        '<input id="ap-tacc" placeholder="title \u2014 highlighted start (e.g. FOC driver)">' +
+        '<input id="ap-trest" placeholder="title \u2014 the rest (e.g.  \u2014 a 3-phase BLDC board)">' +
+        '<textarea id="ap-descr" placeholder="what it is + the problem it solves"></textarea>' +
+        '<div class="achecks"><label><input type="checkbox" value="control">Control</label>' +
+        '<label><input type="checkbox" value="ai">RL \u00b7 ML</label>' +
+        '<label><input type="checkbox" value="hardware" checked>Hardware</label></div>' +
+        '<input id="ap-chips" placeholder="tags, comma-separated (first one highlighted)">' +
+        '<div class="asub">PDF report <span>(optional \u2014 paste a link or upload a file)</span></div>' +
+        '<input id="ap-pdf" placeholder="https://\u2026/report.pdf">' +
+        '<input id="ap-pdf-file" type="file" accept="application/pdf">' +
+        '<div class="asub">Results plot <span>(optional)</span></div>' +
+        '<select id="ap-plot-mode"><option value="none">no plot</option><option value="compute">computed \u2014 from a transfer function</option><option value="data">from pasted data</option></select>' +
+        '<div id="ap-plot-compute" class="aplotbox">' +
+        '<div class="arow3"><input id="ap-plot-num" placeholder="numerator coeffs, e.g. 246"><input id="ap-plot-den" placeholder="denominator, e.g. 1, 4.46, 153.8"></div>' +
+        '<div class="arow3"><select id="ap-plot-kind"><option value="step">step response</option><option value="impulse">impulse response</option></select><input id="ap-plot-tend" placeholder="time span (s), e.g. 3"></div>' +
+        '</div>' +
+        '<div id="ap-plot-data" class="aplotbox"><textarea id="ap-plot-raw" placeholder="paste columns: first = x, rest = series\n0   1.0\n0.05 0.92\n0.10 0.71"></textarea></div>' +
+        '<div id="ap-plot-labels" class="aplotbox"><div class="arow3"><input id="ap-plot-xlabel" placeholder="x-axis label"><input id="ap-plot-ylabel" placeholder="y-axis label"></div></div>' +
+        '<div class="abtns"><button class="asave" id="ap-save">Add project \u2192</button><button class="acancel" id="ap-cancel" style="display:none;">cancel edit</button></div>' +
         '<div class="amsg" id="ap-msg"></div>';
       sec.appendChild(w);
-      var save=w.querySelector('#ap-save'), msg=w.querySelector('#ap-msg');
-      var g=function(id){return w.querySelector(id);};
-      save.addEventListener('click',function(){
-        var tacc=(g('#ap-tacc').value||'').trim(), trest=(g('#ap-trest').value||'').trim();
-        var descr=(g('#ap-descr').value||'').trim();
-        if(!tacc&&!trest){ msg.className='amsg err'; msg.textContent='Add a title.'; return; }
-        if(descr.length<8){ msg.className='amsg err'; msg.textContent='Add a short description.'; return; }
-        var cats=Array.prototype.slice.call(w.querySelectorAll('.achecks input:checked')).map(function(c){return c.value;});
-        var rec={ num:(g('#ap-num').value||'').trim(), meta:(g('#ap-meta').value||'').trim(),
-          title_accent:tacc, title_rest:trest, descr:descr,
-          tags:(cats.length?cats:['control']).join(' '), chips:(g('#ap-chips').value||'').trim(),
-          sort:parseInt((g('#ap-num').value||'0'),10)||0 };
-        save.disabled=true; msg.className='amsg'; msg.textContent='Saving\u2026';
-        Promise.resolve(sb.from('projects').insert([rec]).select()).then(function(res){
-          save.disabled=false;
-          if(res.error) throw res.error;
-          var p=(res.data&&res.data[0])?res.data[0]:rec;
-          grid.appendChild(cardEl(p)); refilter();
-          msg.className='amsg ok'; msg.textContent='Added \u2713 \u2014 it is live on your site.';
-          g('#ap-tacc').value=''; g('#ap-trest').value=''; g('#ap-descr').value=''; g('#ap-chips').value='';
-        }).catch(function(err){
-          save.disabled=false; msg.className='amsg err';
-          msg.textContent=(err&&err.message)?('Could not save: '+err.message):'Could not save \u2014 is the projects table set up?';
-        });
+      var g = function (id) { return w.querySelector(id); };
+      // mode-driven field visibility
+      function syncMode() {
+        var m = g('#ap-plot-mode').value;
+        g('#ap-plot-compute').style.display = (m === 'compute') ? '' : 'none';
+        g('#ap-plot-data').style.display = (m === 'data') ? '' : 'none';
+        g('#ap-plot-labels').style.display = (m === 'none') ? 'none' : '';
+      }
+      g('#ap-plot-mode').addEventListener('change', syncMode); syncMode();
+      g('#ap-cancel').addEventListener('click', resetForm);
+      g('#ap-save').addEventListener('click', doSave);
+      panel = w; return w;
+    }
+    function P(id) { return panel.querySelector(id); }
+
+    function buildPlot() {
+      var mode = P('#ap-plot-mode').value;
+      if (mode === 'compute') {
+        var num = parseNums(P('#ap-plot-num').value), den = parseNums(P('#ap-plot-den').value);
+        if (!num.length || !den.length) return null;
+        return { mode: 'compute', kind: P('#ap-plot-kind').value || 'step', num: num, den: den, tEnd: parseFloat(P('#ap-plot-tend').value) || 5, xlabel: P('#ap-plot-xlabel').value || 't (s)', ylabel: P('#ap-plot-ylabel').value || 'output' };
+      }
+      if (mode === 'data') {
+        var raw = P('#ap-plot-raw').value;
+        var series = (window.MeyanaPlot ? window.MeyanaPlot.parseData(raw) : []);
+        if (!series.length) return null;
+        return { mode: 'data', raw: raw, series: series, xlabel: P('#ap-plot-xlabel').value || 'x', ylabel: P('#ap-plot-ylabel').value || 'y' };
+      }
+      return null;
+    }
+
+    function fillForm(p) {
+      ensurePanel(); panel.style.display = ''; editingId = p.id;
+      P('#ap-head').textContent = 'Admin \u00b7 editing project \u2014 saves changes live';
+      P('#ap-save').textContent = 'Save changes \u2192';
+      P('#ap-cancel').style.display = '';
+      P('#ap-num').value = p.num || ''; P('#ap-meta').value = p.meta || '';
+      P('#ap-tacc').value = p.title_accent || ''; P('#ap-trest').value = p.title_rest || '';
+      P('#ap-descr').value = p.descr || ''; P('#ap-chips').value = p.chips || '';
+      P('#ap-pdf').value = p.pdf_url || ''; var fi = P('#ap-pdf-file'); if (fi) fi.value = '';
+      var cats = String(p.tags || '').split(/\s+/);
+      Array.prototype.slice.call(panel.querySelectorAll('.achecks input')).forEach(function (c) { c.checked = cats.indexOf(c.value) >= 0; });
+      var plot = asObj(p.plot); var modeSel = P('#ap-plot-mode');
+      if (plot && plot.mode === 'compute') { modeSel.value = 'compute'; P('#ap-plot-num').value = (plot.num || []).join(', '); P('#ap-plot-den').value = (plot.den || []).join(', '); P('#ap-plot-kind').value = plot.kind || 'step'; P('#ap-plot-tend').value = plot.tEnd || ''; }
+      else if (plot && plot.mode === 'data') { modeSel.value = 'data'; P('#ap-plot-raw').value = plot.raw || ''; }
+      else { modeSel.value = 'none'; }
+      if (plot) { P('#ap-plot-xlabel').value = plot.xlabel || ''; P('#ap-plot-ylabel').value = plot.ylabel || ''; }
+      modeSel.dispatchEvent(new Event('change'));
+      P('#ap-msg').className = 'amsg'; P('#ap-msg').textContent = '';
+      w_scroll();
+    }
+    function w_scroll() { try { panel.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { } }
+    function resetForm() {
+      if (!panel) return; editingId = null;
+      P('#ap-head').textContent = 'Admin \u00b7 add a project \u2014 saves to your database and appears live';
+      P('#ap-save').textContent = 'Add project \u2192'; P('#ap-cancel').style.display = 'none';
+      ['#ap-num', '#ap-meta', '#ap-tacc', '#ap-trest', '#ap-descr', '#ap-chips', '#ap-pdf', '#ap-plot-num', '#ap-plot-den', '#ap-plot-tend', '#ap-plot-raw', '#ap-plot-xlabel', '#ap-plot-ylabel'].forEach(function (id) { var e = P(id); if (e) e.value = ''; });
+      var fi = P('#ap-pdf-file'); if (fi) fi.value = '';
+      P('#ap-plot-mode').value = 'none'; P('#ap-plot-mode').dispatchEvent(new Event('change'));
+      P('#ap-msg').className = 'amsg'; P('#ap-msg').textContent = '';
+    }
+
+    function uploadPdf(file, cb) {
+      if (!sb || !sb.storage) { cb(null, 'Storage unavailable \u2014 paste a URL instead.'); return; }
+      var path = 'p' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      Promise.resolve(sb.storage.from('project-pdfs').upload(path, file, { upsert: true, contentType: 'application/pdf' })).then(function (res) {
+        if (res.error) throw res.error;
+        var pub = sb.storage.from('project-pdfs').getPublicUrl(path);
+        var url = pub && pub.data && pub.data.publicUrl;
+        cb(url || null, url ? null : 'Uploaded, but no public URL \u2014 is the bucket public?');
+      }).catch(function (err) { cb(null, (err && err.message) ? ('Upload failed: ' + err.message) : 'Upload failed \u2014 paste a URL instead.'); });
+    }
+
+    function doSave() {
+      var msg = P('#ap-msg'), save = P('#ap-save');
+      var tacc = (P('#ap-tacc').value || '').trim(), trest = (P('#ap-trest').value || '').trim();
+      var descr = (P('#ap-descr').value || '').trim();
+      if (!tacc && !trest) { msg.className = 'amsg err'; msg.textContent = 'Add a title.'; return; }
+      if (descr.length < 8) { msg.className = 'amsg err'; msg.textContent = 'Add a short description.'; return; }
+      var cats = Array.prototype.slice.call(panel.querySelectorAll('.achecks input:checked')).map(function (c) { return c.value; });
+      var rec = {
+        num: (P('#ap-num').value || '').trim(), meta: (P('#ap-meta').value || '').trim(),
+        title_accent: tacc, title_rest: trest, descr: descr,
+        tags: (cats.length ? cats : ['control']).join(' '), chips: (P('#ap-chips').value || '').trim(),
+        sort: parseInt((P('#ap-num').value || '0'), 10) || 0,
+        plot: buildPlot()
+      };
+      var pasted = (P('#ap-pdf').value || '').trim();
+      var fileInput = P('#ap-pdf-file'); var file = fileInput && fileInput.files && fileInput.files[0];
+      save.disabled = true; msg.className = 'amsg'; msg.textContent = file ? 'Uploading PDF\u2026' : 'Saving\u2026';
+      if (file) { uploadPdf(file, function (url, err) { if (err) { msg.className = 'amsg'; msg.textContent = err + ' Saving the rest\u2026'; } rec.pdf_url = url || pasted || null; finalize(rec); }); }
+      else { rec.pdf_url = pasted || null; finalize(rec); }
+    }
+    function finalize(rec) {
+      var msg = P('#ap-msg'), save = P('#ap-save');
+      var op = editingId
+        ? sb.from('projects').update(rec).eq('id', editingId).select()
+        : sb.from('projects').insert([rec]).select();
+      Promise.resolve(op).then(function (res) {
+        save.disabled = false;
+        if (res.error) throw res.error;
+        var saved = (res.data && res.data[0]) ? res.data[0] : rec;
+        if (editingId) { loaded = loaded.map(function (x) { return x.id === editingId ? saved : x; }); msg.className = 'amsg ok'; msg.textContent = 'Saved \u2713'; }
+        else { loaded.push(saved); msg.className = 'amsg ok'; msg.textContent = 'Added \u2713 \u2014 it is live on your site.'; }
+        renderAll(); resetForm();
+      }).catch(function (err) {
+        save.disabled = false; msg.className = 'amsg err';
+        var m = (err && err.message) ? err.message : '';
+        if (/column .*plot|plot.* does not exist/i.test(m)) m = 'the `plot` column is missing \u2014 run the SQL in the guide.';
+        else if (/pdf_url/i.test(m)) m = 'the `pdf_url` column is missing \u2014 run the SQL in the guide.';
+        msg.textContent = m ? ('Could not save: ' + m) : 'Could not save \u2014 is the projects table set up?';
       });
-      panel=w; return w;
     }
-    function showAdmin(on){ if(!on){ if(panel) panel.style.display='none'; return; } ensurePanel().style.display=''; }
-    function checkAdmin(){
-      if(!sb||!sb.auth||!sb.auth.getUser) return;
-      Promise.resolve(sb.auth.getUser()).then(function(u){
-        var em=u&&u.data&&u.data.user&&u.data.user.email;
-        showAdmin(!!(em&&String(em).toLowerCase()===ADMIN_EMAIL));
-      }).catch(function(){});
+
+    // ---------- results plot modal ----------
+    var plotModal = null, plotChart = null;
+    function ensurePlotModal() {
+      if (plotModal) return plotModal;
+      var o = document.createElement('div'); o.className = 'mplot-overlay'; o.id = 'mplot-overlay'; o.setAttribute('aria-hidden', 'true');
+      o.innerHTML =
+        '<div class="mplot-panel"><button type="button" class="mplot-close" aria-label="Close">\u00d7</button>' +
+        '<div class="mplot-eyebrow">project results</div><h2 class="mplot-title" id="mplot-title">Results</h2>' +
+        '<div class="mplot-controls" id="mplot-controls"></div>' +
+        '<div class="mplot-body" id="mplot-body"></div>' +
+        '<div class="mplot-note" id="mplot-note"></div></div>';
+      document.body.appendChild(o);
+      o.querySelector('.mplot-close').addEventListener('click', closePlot);
+      o.addEventListener('click', function (e) { if (e.target === o) closePlot(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && o.classList.contains('is-open')) closePlot(); });
+      plotModal = o; return o;
     }
-    if(sb&&sb.auth&&sb.auth.onAuthStateChange){ try{ sb.auth.onAuthStateChange(function(){ checkAdmin(); }); }catch(e){} }
+    function closePlot() { if (plotModal) { plotModal.classList.remove('is-open'); plotModal.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; } }
+    function openPlot(spec, p) {
+      if (!window.MeyanaPlot) return;
+      var s = asObj(spec); if (!s) return;
+      ensurePlotModal();
+      plotModal.querySelector('#mplot-title').textContent = ((p.title_accent || '') + (p.title_rest || '')).trim() || 'Project results';
+      var controls = plotModal.querySelector('#mplot-controls');
+      var body = plotModal.querySelector('#mplot-body');
+      var note = plotModal.querySelector('#mplot-note');
+      controls.innerHTML = ''; note.textContent = '';
+      if (s.mode === 'compute') {
+        note.innerHTML = 'Live response of G(s) = num / den. Edit the coefficients to recompute.';
+        var st = { num: (s.num || []).join(', '), den: (s.den || []).join(', '), kind: s.kind || 'step', tEnd: s.tEnd || 5, xlabel: s.xlabel, ylabel: s.ylabel };
+        controls.innerHTML =
+          '<label>numerator<input id="mp-num" value="' + esc(st.num) + '"></label>' +
+          '<label>denominator<input id="mp-den" value="' + esc(st.den) + '"></label>' +
+          '<label>response<select id="mp-kind"><option value="step"' + (st.kind === 'step' ? ' selected' : '') + '>step</option><option value="impulse"' + (st.kind === 'impulse' ? ' selected' : '') + '>impulse</option></select></label>' +
+          '<label>span (s)<input id="mp-tend" value="' + esc(st.tEnd) + '" style="width:70px"></label>';
+        var recompute = function () {
+          var num = parseNums(controls.querySelector('#mp-num').value);
+          var den = parseNums(controls.querySelector('#mp-den').value);
+          var kind = controls.querySelector('#mp-kind').value;
+          var tEnd = parseFloat(controls.querySelector('#mp-tend').value) || 5;
+          var pts = window.MeyanaPlot.tfResponse(num, den, kind, tEnd);
+          var seriesSpec = { series: [{ name: kind + ' response', points: pts, color: 'var(--accent)' }], xlabel: st.xlabel, ylabel: st.ylabel };
+          if (plotChart) plotChart.update(seriesSpec); else plotChart = window.MeyanaPlot.makeChart(body, seriesSpec);
+        };
+        Array.prototype.slice.call(controls.querySelectorAll('input,select')).forEach(function (i) { i.addEventListener('input', recompute); i.addEventListener('change', recompute); });
+        plotChart = null; recompute();
+      } else {
+        plotChart = window.MeyanaPlot.makeChart(body, { series: s.series || [], xlabel: s.xlabel, ylabel: s.ylabel });
+      }
+      plotModal.classList.add('is-open'); plotModal.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+    }
+
+    // ---------- styles ----------
+    (function () {
+      var st = document.createElement('style');
+      st.textContent =
+        '#admin-add{margin-top:22px;border:1px solid var(--rule);background:var(--paper);padding:20px;}' +
+        '#admin-add .ahead{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;}' +
+        '#admin-add .asub{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 8px;}' +
+        '#admin-add .asub span{text-transform:none;letter-spacing:0;color:var(--ink-3);}' +
+        '#admin-add input,#admin-add textarea,#admin-add select{appearance:none;width:100%;border:1px solid var(--rule);background:var(--paper-2);padding:10px 12px;font-family:var(--mono);font-size:13px;color:var(--ink);outline:none;margin-bottom:10px;box-sizing:border-box;}' +
+        '#admin-add textarea{font-family:var(--sans);min-height:72px;resize:vertical;}' +
+        '#admin-add input[type=file]{font-family:var(--sans);padding:8px;}' +
+        '#admin-add input:focus,#admin-add textarea:focus,#admin-add select:focus{border-color:var(--accent);}' +
+        '#admin-add .arow{display:grid;grid-template-columns:90px 1fr;gap:10px;}' +
+        '#admin-add .arow3{display:grid;grid-template-columns:1fr 1fr;gap:10px;}' +
+        '#admin-add .aplotbox{margin-bottom:2px;}' +
+        '#admin-add .achecks{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-bottom:10px;}' +
+        '#admin-add .achecks label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);background:var(--paper-2);padding:7px 11px;cursor:pointer;}' +
+        '#admin-add .achecks input{width:auto;margin:0;accent-color:var(--accent);}' +
+        '#admin-add .abtns{display:flex;gap:10px;align-items:center;}' +
+        '#admin-add .asave{appearance:none;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:11px 20px;}' +
+        '#admin-add .asave:hover{background:var(--accent);border-color:var(--accent);}#admin-add .asave:disabled{opacity:.55;cursor:default;}' +
+        '#admin-add .acancel{appearance:none;cursor:pointer;border:1px solid var(--rule);background:var(--paper-2);color:var(--ink-2);font-family:var(--mono);font-size:11px;padding:10px 14px;}' +
+        '#admin-add .amsg{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:8px;min-height:1em;}' +
+        '#admin-add .amsg.ok{color:var(--good);}#admin-add .amsg.err{color:oklch(0.55 0.20 28);}' +
+        '.proj-extra{display:flex;flex-wrap:wrap;gap:10px;margin-top:-2px;}' +
+        '.proj-link{appearance:none;cursor:pointer;background:transparent;border:0;padding:0;font-family:var(--mono);font-size:11.5px;color:var(--accent-ink);text-decoration:none;border-bottom:1px solid color-mix(in oklch,var(--accent) 40%,transparent);}' +
+        '.proj-link:hover{color:var(--accent);}' +
+        '.proj-views{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-left:auto;align-self:center;}' +
+        '.proj-admin{display:flex;gap:6px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--rule);}' +
+        '.pa-btn{appearance:none;cursor:pointer;border:1px solid var(--rule);background:var(--paper-2);color:var(--ink-2);font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;padding:5px 10px;}' +
+        '.pa-btn:hover{border-color:var(--accent);color:var(--accent-ink);}.pa-btn:disabled{opacity:.5;}' +
+        '.pa-del:hover{border-color:oklch(0.55 0.20 28);color:oklch(0.55 0.20 28);}' +
+        '.mplot-overlay{position:fixed;inset:0;z-index:2200;display:none;background:color-mix(in oklch,var(--ink) 34%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:7vh 20px 20px;overflow:auto;}' +
+        '.mplot-overlay.is-open{display:block;}' +
+        '.mplot-panel{position:relative;max-width:680px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);box-shadow:0 24px 64px -28px rgba(0,0,0,.55);padding:26px 26px 22px;}' +
+        '.mplot-close{position:absolute;top:12px;right:14px;appearance:none;cursor:pointer;border:0;background:transparent;font-size:24px;line-height:1;color:var(--ink-3);}' +
+        '.mplot-close:hover{color:var(--ink);}' +
+        '.mplot-eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);}' +
+        '.mplot-title{font-family:var(--serif);font-weight:600;font-size:22px;margin:4px 0 14px;color:var(--ink);}' +
+        '.mplot-controls{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;}' +
+        '.mplot-controls label{display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);}' +
+        '.mplot-controls input,.mplot-controls select{appearance:none;border:1px solid var(--rule);background:var(--paper-2);padding:7px 9px;font-family:var(--mono);font-size:12px;color:var(--ink);outline:none;}' +
+        '.mplot-controls input:focus,.mplot-controls select:focus{border-color:var(--accent);}' +
+        '.mplot-body{border:1px solid var(--rule);background:var(--paper-2);}' +
+        '.mplot-svg{display:block;width:100%;height:auto;}' +
+        '.mplot-legend{display:flex;flex-wrap:wrap;gap:14px;padding:8px 12px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:11px;color:var(--ink-2);}' +
+        '.mplot-chip{display:inline-flex;align-items:center;gap:6px;}.mplot-chip i{width:14px;height:3px;display:inline-block;}' +
+        '.mplot-note{font-family:var(--sans);font-size:12px;color:var(--ink-3);margin-top:10px;}' +
+        '[dir="rtl"] .proj-views{margin-left:0;margin-right:auto;}';
+      document.head.appendChild(st);
+    })();
+
+    function showAdmin(on) { if (!on) { if (panel) panel.style.display = 'none'; return; } ensurePanel().style.display = ''; }
+    function checkAdmin() {
+      if (!sb || !sb.auth || !sb.auth.getUser) return;
+      Promise.resolve(sb.auth.getUser()).then(function (u) {
+        var em = u && u.data && u.data.user && u.data.user.email;
+        var nowAdmin = !!(em && String(em).toLowerCase() === ADMIN_EMAIL);
+        var changed = nowAdmin !== isAdmin;
+        isAdmin = nowAdmin; showAdmin(isAdmin);
+        if (changed) renderAll();
+      }).catch(function () { });
+    }
+    if (sb && sb.auth && sb.auth.onAuthStateChange) { try { sb.auth.onAuthStateChange(function () { checkAdmin(); }); } catch (e) { } }
     load(); checkAdmin();
-  } catch(e){ /* never break the page */ }
+  } catch (e) { /* never break the page */ }
 })();
 </script>
 
@@ -6927,12 +7355,18 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
 /* =========================================================
    Meyana — real-time gimbal simulation (replaces the faked curves)
    ---------------------------------------------------------
-   Integrates the identified 2nd-order plant in real time and lets the
-   delay slider drive a genuine, delay-induced limit cycle. The cycle sits
-   at the loop's -180 deg phase-crossover frequency (~3.2 Hz near the
-   degraded test point) — NOT wn/2pi — and shifts as you change the delay.
-   Hooks the existing ids/classes so it is drop-in:
-     #dist-slider #dist-val #curve-pid #curve-rl .featured-art .bp-pitch #bp-status-text
+   Identified 2nd-order plant integrated with RK4 at 200 Hz; the delay
+   slider drives a genuine, delay-induced limit cycle that settles at the
+   loop's -180 deg phase-crossover frequency (~3.2 Hz near the degraded
+   point) and shifts as the delay changes.
+
+   Performance: physics + the blueprint update every frame (cheap), but the
+   SVG strip-chart redraw and the stats are throttled, so it stays smooth
+   next to the page's other animation. A drag of the slider injects a kick
+   so the new regime appears at once instead of slowly building from noise.
+
+   Hooks existing ids: #dist-slider #dist-val #curve-pid #curve-rl
+   .featured-art .bp-pitch #bp-status-text
    ========================================================= */
 (function () {
   'use strict';
@@ -6945,13 +7379,21 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   var statusText = document.getElementById('bp-status-text');
   if (!art || !slider || !curvePid || !curveRl) return;
 
-  // ---- identified plant (TIPE, pitch axis) -------------------------------
-  var WN = 12.4, ZETA = 0.18, K = 1.6;     // wn rad/s, damping, gain
+  var WN = 12.4, ZETA = 0.18, K = 1.6;     // identified plant (pitch)
   var DT = 0.005;                           // 200 Hz control loop
-  var DELAY_MAX = 0.060;                    // slider 100% -> +60 ms loop delay
-  var WINDOW = 6.0;                         // seconds shown in the strip chart
-  var NBUF = Math.round(WINDOW / DT);
-  var SCALE = 1.0;                          // rad mapped to half-height of plot
+  var DELAY_MAX = 0.060;                    // slider 100% -> +60 ms delay
+  var WINDOW = 6.0, NBUF = Math.round(WINDOW / DT);
+  var SCALE = 1.0;                          // rad mapped to half plot height
+  var PLOT_PTS = 116;                       // strip-chart resolution
+  var RENDER_MS = 33;                       // redraw the curves at ~30 fps
+  var STATS_MS = 150;                       // recompute amplitude/freq less often
+
+  // precomputed x coordinates for the plot (0..320)
+  var XS = new Array(PLOT_PTS), IDX = new Array(PLOT_PTS);
+  for (var k = 0; k < PLOT_PTS; k++) {
+    XS[k] = Math.round((k / (PLOT_PTS - 1)) * 320 * 10) / 10;
+    IDX[k] = Math.round((k / (PLOT_PTS - 1)) * (NBUF - 1));
+  }
 
   function deriv(th, w, u) {
     return [w, K * WN * WN * u - 2 * ZETA * WN * w - WN * WN * th];
@@ -6965,26 +7407,18 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
     s.w += dt / 6 * (a1[1] + 2 * a2[1] + 2 * a3[1] + a4[1]);
   }
 
-  // PID with derivative-on-measurement low-pass + conditional anti-windup.
-  // Optional Smith-style predictor: an on-board plant model lets the
-  // controller act on a *predicted* undelayed angle, giving it the large
-  // delay margin a delay-trained policy effectively learns.
+  // PID (derivative-on-measurement, low-pass, anti-windup); optional Smith
+  // predictor gives the delay-aware "RL" controller its large delay margin.
   function makeCtrl(g) {
     var integ = 0, prevMeas = 0, dF = 0, started = false;
     var tau = 1 / (2 * Math.PI * g.fc);
     var model = { th: 0, w: 0 };
     var mbuf = [], mbi = 0, mlen = 0;
     return {
-      setDelay: function (steps) {
-        mlen = Math.max(0, steps);
-        mbuf = new Array(Math.max(1, mlen)).fill(0); mbi = 0;
-      },
+      setDelay: function (steps) { mlen = Math.max(0, steps); mbuf = new Array(Math.max(1, mlen)).fill(0); mbi = 0; },
       step: function (measDelayed, ref, dt) {
         var meas = measDelayed;
-        if (g.smith) {
-          var mDelayed = mlen ? mbuf[mbi] : model.th;
-          meas = measDelayed + (model.th - mDelayed);   // predicted "now"
-        }
+        if (g.smith) { var mD = mlen ? mbuf[mbi] : model.th; meas = measDelayed + (model.th - mD); }
         var e = ref - meas;
         if (!started) { prevMeas = meas; started = true; }
         var dRaw = (meas - prevMeas) / dt;
@@ -6992,33 +7426,25 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
         prevMeas = meas;
         var u = g.Kp * e + g.Ki * integ - g.Kd * dF;
         var us = u < -1 ? -1 : (u > 1 ? 1 : u);
-        if (us === u) integ += e * dt;             // anti-windup
-        if (g.smith) {
-          rk4(model, us, dt);
-          if (mlen) { mbuf[mbi] = model.th; mbi = (mbi + 1) % mlen; }
-        }
+        if (us === u) integ += e * dt;
+        if (g.smith) { rk4(model, us, dt); if (mlen) { mbuf[mbi] = model.th; mbi = (mbi + 1) % mlen; } }
         return us;
       }
     };
   }
 
-  var GP = { Kp: 3.0, Ki: 23.5, Kd: 0.211, fc: 18 };               // baseline PID
-  var GR = { Kp: 3.0, Ki: 20.0, Kd: 0.18, fc: 18, smith: true };   // delay-aware "RL"
-
-  var pid = makeCtrl(GP), rl = makeCtrl(GR);
+  var pid = makeCtrl({ Kp: 3.0, Ki: 23.5, Kd: 0.211, fc: 18 });
+  var rl = makeCtrl({ Kp: 3.0, Ki: 20.0, Kd: 0.18, fc: 18, smith: true });
   var sPid = { th: 0, w: 0 }, sRl = { th: 0, w: 0 };
   var bufPid = new Float64Array(NBUF), bufRl = new Float64Array(NBUF);
-  var head = 0, filled = 0;
-  var delaySteps = 0;
-  var dPid = new Array(1).fill(0), dRl = new Array(1).fill(0), di = 0, dlen = 0;
-  var rng = 0x2545F491, stepN = 0;
+  var head = 0, filled = 0, stepN = 0, pendingKick = 0;
+  var dlen = 0, dPid = [0], dRl = [0], di = 0;
+  var rng = 0x2545F491;
   function rand() { rng = (rng * 1103515245 + 12345) & 0x7fffffff; return rng / 0x7fffffff - 0.5; }
 
   function setDelayFromSlider() {
-    var n = (+slider.value) / 100;
-    var sec = n * DELAY_MAX;
-    delaySteps = Math.round(sec / DT);
-    dlen = Math.max(0, delaySteps);
+    var sec = ((+slider.value) / 100) * DELAY_MAX;
+    dlen = Math.round(sec / DT);
     dPid = new Array(Math.max(1, dlen)).fill(0);
     dRl = new Array(Math.max(1, dlen)).fill(0); di = 0;
     pid.setDelay(dlen); rl.setDelay(dlen);
@@ -7026,127 +7452,109 @@ html[dir="rtl"] .subscribe-form input[type="email"] { border-right: 1px solid va
   }
 
   function stepOnce() {
-    var kick = (stepN % Math.round(0.7 / DT) === 0) ? 0.03 : 0;
-    var noise = 0.0012 * rand();
-    // PID loop (acts on delayed measurement)
+    var kick = (stepN % Math.round(0.6 / DT) === 0) ? 0.04 : 0;
+    var ext = 0.0016 * rand() + kick + pendingKick;
+    pendingKick = 0;
     var mP = dlen ? dPid[di] : sPid.th;
-    var uP = pid.step(mP, 0, DT);
-    rk4(sPid, uP, DT); sPid.w += noise + kick;
-    // RL loop (same exogenous disturbance, fair comparison)
+    rk4(sPid, pid.step(mP, 0, DT), DT); sPid.w += ext;
     var mR = dlen ? dRl[di] : sRl.th;
-    var uR = rl.step(mR, 0, DT);
-    rk4(sRl, uR, DT); sRl.w += noise + kick;
+    rk4(sRl, rl.step(mR, 0, DT), DT); sRl.w += ext;
     if (dlen) { dPid[di] = sPid.th; dRl[di] = sRl.th; di = (di + 1) % dlen; }
     bufPid[head] = sPid.th; bufRl[head] = sRl.th;
     head = (head + 1) % NBUF; if (filled < NBUF) filled++;
     stepN++;
   }
 
-  function pathFor(buf) {
-    var M = 161, d = '';
-    for (var k = 0; k < M; k++) {
-      var idx = Math.round(k / (M - 1) * (NBUF - 1));
-      var s = buf[(head + idx) % NBUF];           // oldest -> newest
-      var y = 46 - Math.max(-1, Math.min(1, s / SCALE)) * 42;
-      var x = (k / (M - 1)) * 320;
-      d += (k ? ' L' : 'M') + x.toFixed(1) + ',' + y.toFixed(2);
+  function buildPath(buf) {
+    var d = 'M', i, s, y;
+    for (i = 0; i < PLOT_PTS; i++) {
+      s = buf[(head + IDX[i]) % NBUF];
+      y = 46 - (s > SCALE ? 1 : (s < -SCALE ? -1 : s / SCALE)) * 42;
+      d += (i ? 'L' : '') + XS[i] + ',' + (Math.round(y * 10) / 10);
     }
     return d;
   }
+  function drawCurves() {
+    curvePid.setAttribute('d', buildPath(bufPid));
+    curveRl.setAttribute('d', buildPath(bufRl));
+  }
 
-  // dominant frequency of the PID trace (rising zero-crossings about mean,
-  // last ~2 s) — only meaningful once an oscillation dominates the noise
   function pidStats() {
-    var n = Math.min(filled, Math.round(2.0 / DT));
-    var mean = 0, i, v, peak = 0;
-    for (i = 0; i < n; i++) { v = bufPid[(head - 1 - i + NBUF) % NBUF]; mean += v; }
+    var n = Math.min(filled, Math.round(2.0 / DT)), i, v, mean = 0, peak = 0, cross = 0, prev = 0;
+    for (i = 0; i < n; i++) mean += bufPid[(head - 1 - i + NBUF) % NBUF];
     mean /= (n || 1);
-    var cross = 0, prev = 0;
     for (i = n - 1; i >= 0; i--) {
       v = bufPid[(head - 1 - i + NBUF) % NBUF] - mean;
       if (Math.abs(v) > peak) peak = Math.abs(v);
       if (prev <= 0 && v > 0 && i < n - 1) cross++;
       prev = v;
     }
-    var secs = n * DT;
-    return { amp: peak, freq: secs ? cross / secs : 0 };
+    return { amp: peak, freq: n ? cross / (n * DT) : 0 };
   }
 
-  function render() {
-    curvePid.setAttribute('d', pathFor(bufPid));
-    curveRl.setAttribute('d', pathFor(bufRl));
+  function updateBlueprint() {
+    if (!bpPitch) return;
+    var th = (art.dataset.mode === 'rl') ? sRl.th : sPid.th;
+    var deg = th * 18; deg = deg < -24 ? -24 : (deg > 24 ? 24 : deg);
+    bpPitch.style.transform = 'rotate(' + (Math.round(deg * 100) / 100) + 'deg)';
+  }
+  function updateStatus(st) {
     var mode = art.dataset.mode || 'pid';
-    var th = (mode === 'rl') ? sRl.th : sPid.th;
-    if (bpPitch) {
-      var deg = Math.max(-24, Math.min(24, th * 18));
-      bpPitch.style.transform = 'rotate(' + deg.toFixed(2) + 'deg)';
-    }
     var ms = Math.round((+slider.value) / 100 * DELAY_MAX * 1000);
-    var st = pidStats();
     var cycling = (mode === 'pid' && st.amp > 0.05);
     art.classList.toggle('is-cycling', cycling);
-    if (statusText) {
-      if (mode === 'pid') {
-        statusText.textContent = cycling
-          ? ('PID · ' + st.freq.toFixed(1) + ' Hz limit cycle · +' + ms + ' ms')
-          : (ms > 0 ? ('PID · holding · +' + ms + ' ms') : 'PID · stable · nominal');
-      } else {
-        statusText.textContent = ms > 0 ? ('RL · locked · +' + ms + ' ms') : 'RL · locked · nominal';
-      }
+    if (!statusText) return;
+    if (mode === 'pid') {
+      statusText.textContent = cycling
+        ? ('PID · ' + st.freq.toFixed(1) + ' Hz limit cycle · +' + ms + ' ms')
+        : (ms > 0 ? ('PID · holding · +' + ms + ' ms') : 'PID · stable · nominal');
+    } else {
+      statusText.textContent = ms > 0 ? ('RL · locked · +' + ms + ' ms') : 'RL · locked · nominal';
     }
   }
 
-  // ---- run loop ----------------------------------------------------------
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var visible = true, running = false, last = 0, acc = 0;
+  var lastRender = 0, lastStats = 0, cached = { amp: 0, freq: 0 };
 
   function frame(now) {
     if (!running) return;
     if (!last) last = now;
     var dt = (now - last) / 1000; last = now;
-    if (dt > 0.1) dt = 0.1;                  // tab was backgrounded — don't spiral
+    if (dt > 0.1) dt = 0.1;
     acc += dt;
     var steps = 0;
-    while (acc >= DT && steps < 60) { stepOnce(); acc -= DT; steps++; }
-    render();
+    while (acc >= DT && steps < 24) { stepOnce(); acc -= DT; steps++; }
+    updateBlueprint();
+    if (now - lastStats >= STATS_MS) { cached = pidStats(); lastStats = now; }
+    if (now - lastRender >= RENDER_MS) { drawCurves(); lastRender = now; }
+    updateStatus(cached);
     requestAnimationFrame(frame);
   }
-  function start() { if (running || reduce || !visible) return; running = true; last = 0; requestAnimationFrame(frame); }
+  function start() { if (running || reduce || !visible) return; running = true; last = 0; lastRender = 0; lastStats = 0; requestAnimationFrame(frame); }
   function stop() { running = false; }
 
-  // reduced-motion: one settled snapshot, refreshed on interaction
   function snapshot() {
     sPid = { th: 0, w: 0 }; sRl = { th: 0, w: 0 };
-    head = 0; filled = 0; stepN = 0;
-    bufPid.fill(0); bufRl.fill(0);
-    var total = Math.round((WINDOW + 3) / DT);
-    for (var i = 0; i < total; i++) stepOnce();
-    render();
+    head = 0; filled = 0; stepN = 0; bufPid.fill(0); bufRl.fill(0);
+    for (var i = 0; i < Math.round((WINDOW + 3) / DT); i++) stepOnce();
+    drawCurves(); updateBlueprint(); updateStatus(pidStats());
   }
 
   setDelayFromSlider();
   slider.addEventListener('input', function () {
     setDelayFromSlider();
+    pendingKick = 0.12;          // immediate visible transient on drag
     if (reduce) snapshot();
   });
 
-  // re-snapshot on mode/view change when animation is off
   if (reduce && window.MutationObserver) {
-    new MutationObserver(function () { snapshot(); })
-      .observe(art, { attributes: true, attributeFilter: ['data-mode', 'data-view'] });
+    new MutationObserver(function () { snapshot(); }).observe(art, { attributes: true, attributeFilter: ['data-mode', 'data-view'] });
   }
-
-  // only burn cycles while the panel is on screen
   if (window.IntersectionObserver) {
-    new IntersectionObserver(function (es) {
-      visible = es[0].isIntersecting;
-      if (visible) start(); else stop();
-    }, { threshold: 0.05 }).observe(art);
+    new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) start(); else stop(); }, { threshold: 0.05 }).observe(art);
   } else { visible = true; start(); }
-
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) stop(); else if (visible) start();
-  });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else if (visible) start(); });
 
   if (reduce) snapshot(); else start();
 })();
